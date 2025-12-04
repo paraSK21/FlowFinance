@@ -1,0 +1,41 @@
+{
+  "name": "flowfinance-backend",
+  "version": "1.0.0",
+  "description": "Flow Finance Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node src/migrations/run.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^2.8.1",
+    "@sendgrid/mail": "^8.1.6",
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.8.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.1",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.11",
+    "pg": "^8.11.0",
+    "pg-hstore": "^2.3.4",
+    "plaid": "^14.1.0",
+    "razorpay": "^2.9.6",
+    "sequelize": "^6.32.1",
+    "sharp": "^0.32.4",
+    "socket.io": "^4.8.1",
+    "stripe": "^20.0.0",
+    "tesseract.js": "^4.1.1",
+    "twilio": "^4.23.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.1",
+    "nodemon": "^3.0.1"
+  }
+}

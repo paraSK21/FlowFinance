@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Check</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1f2e;
+            color: #fff;
+        }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .warning { background: #f59e0b; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>FlowFinance Auth Checker</h1>
+    
+    <div id="status"></div>
+    
+    <button onclick="checkAuth()">Check Authentication</button>
+    <button onclick="testPlaidEndpoint()">Test Plaid Endpoint</button>
+    <button onclick="clearToken()">Clear Token & Logout</button>
+    
+    <pre id="output"></pre>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `[${timestamp}] ${message}\n`;
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+        
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showStatus('❌ No token found - You need to log in', 'error');
+                log('No token in localStorage');
+                return;
+            }
+            
+            showStatus('✓ Token found in localStorage', 'success');
+            log('Token: ' + token.substring(0, 20) + '...');
+            
+            // Test token validity
+            fetch(`${API_URL}/auth/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus('❌ Token is invalid or expired', 'error');
+                    log('Error: ' + data.error);
+                } else {
+                    showStatus('✓ Token is valid - User: ' + data.email, 'success');
+                    log('User data: ' + JSON.stringify(data, null, 2));
+                }
+            })
+            .catch(err => {
+                showStatus('❌ Failed to verify token', 'error');
+                log('Error: ' + err.message);
+            });
+        }
+        
+        function testPlaidEndpoint() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showStatus('❌ No token - Log in first', 'error');
+                return;
+            }
+            
+            log('Testing Plaid endpoint...');
+            
+            fetch(`${API_URL}/plaid/create-link-token`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.linkToken) {
+                    showStatus('✓ Plaid link token created successfully!', 'success');
+                    log('Link token: ' + data.linkToken.substring(0, 30) + '...');
+                } else if (data.error) {
+                    showStatus('❌ Plaid error: ' + data.error, 'error');
+                    log('Error: ' + JSON.stringify(data, null, 2));
+                }
+            })
+            .catch(err => {
+                showStatus('❌ Request failed: ' + err.message, 'error');
+                log('Error: ' + err.message);
+            });
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('token');
+            showStatus('Token cleared - Please log in again', 'warning');
+            log('Token removed from localStorage');
+        }
+        
+        // Auto-check on load
+        window.onload = checkAuth;
+    </script>
+</body>
+</html>

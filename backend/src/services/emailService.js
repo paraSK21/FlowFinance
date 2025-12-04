@@ -1,0 +1,409 @@
+const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
+
+class EmailService {
+  constructor() {
+    this.useSendGrid = !!process.env.SENDGRID_API_KEY;
+    
+    if (this.useSendGrid) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      console.log('Email service initialized with SendGrid');
+    } else if (process.env.SMTP_HOST) {
+      // Fallback to SMTP
+      this.transporter = nodemailer.createTransporter({
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+      console.log('Email service initialized with SMTP');
+    } else {
+      console.warn('Email service not configured');
+    }
+  }
+
+  async sendEmail(to, subject, html, text = null) {
+    try {
+      if (this.useSendGrid) {
+        return await this.sendWithSendGrid(to, subject, html, text);
+      } else if (this.transporter) {
+        return await this.sendWithSMTP(to, subject, html, text);
+      } else {
+        console.log('Email not sent (service not configured):', { to, subject });
+        return { success: false, message: 'Email service not configured' };
+      }
+    } catch (error) {
+      console.error('Send email error:', error);
+      throw error;
+    }
+  }
+
+  async sendWithSendGrid(to, subject, html, text) {
+    const msg = {
+      to,
+      from: process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+      subject,
+      text: text || this.stripHtml(html),
+      html,
+    };
+
+    await sgMail.send(msg);
+    return { success: true };
+  }
+
+  async sendWithSMTP(to, subject, html, text) {
+    const mailOptions = {
+      from: process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+      to,
+      subject,
+      text: text || this.stripHtml(html),
+      html,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+    return { success: true };
+  }
+
+  stripHtml(html) {
+    return html.replace(/<[^>]*>/g, '');
+  }
+
+  // Invoice Templates
+  async sendInvoiceCreated(invoice, user) {
+    const subject = `Invoice ${invoice.invoiceNumber} Created`;
+    const html = this.getInvoiceCreatedTemplate(invoice, user);
+    
+    return await this.sendEmail(invoice.clientEmail, subject, html);
+  }
+
+  async sendInvoiceReminder(invoice, user, daysOverdue = 0) {
+    const subject = daysOverdue > 0 
+      ? `Reminder: Invoice ${invoice.invoiceNumber} is ${daysOverdue} days overdue`
+      : `Reminder: Invoice ${invoice.invoiceNumber} due soon`;
+    
+    const html = this.getInvoiceReminderTemplate(invoice, user, daysOverdue);
+    
+    return await this.sendEmail(invoice.clientEmail, subject, html);
+  }
+
+  async sendPaymentConfirmation(invoice, user) {
+    const subject = `Payment Received - Invoice ${invoice.invoiceNumber}`;
+    const html = this.getPaymentConfirmationTemplate(invoice, user);
+    
+    return await this.sendEmail(invoice.clientEmail, subject, html);
+  }
+
+  // Low Stock Alert
+  async sendLowStockAlert(items, user) {
+    const subject = `Low Stock Alert - ${items.length} items need attention`;
+    const html = this.getLowStockAlertTemplate(items, user);
+    
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  // Welcome Email
+  async sendWelcomeEmail(user) {
+    const subject = 'Welcome to FlowFinance!';
+    const html = this.getWelcomeTemplate(user);
+    
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  // Password Reset
+  async sendPasswordReset(user, resetToken) {
+    const subject = 'Reset Your Password';
+    const html = this.getPasswordResetTemplate(user, resetToken);
+    
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  // Email Templates
+  getInvoiceCreatedTemplate(invoice, user) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>New Invoice</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${invoice.clientName},</p>
+            <p>${user.businessName || user.firstName + ' ' + user.lastName} has sent you an invoice.</p>
+            
+            <div class="invoice-details">
+              <h3>Invoice Details</h3>
+              <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+              <p><strong>Amount:</strong> $${invoice.amount}</p>
+              <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+              ${invoice.description ? `<p><strong>Description:</strong> ${invoice.description}</p>` : ''}
+            </div>
+
+            ${invoice.paymentLink ? `
+              <a href="${invoice.paymentLink}" class="button">Pay Invoice</a>
+            ` : ''}
+
+            <p>If you have any questions, please don't hesitate to reach out.</p>
+            <p>Best regards,<br>${user.businessName || user.firstName + ' ' + user.lastName}</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getInvoiceReminderTemplate(invoice, user, daysOverdue) {
+    const isOverdue = daysOverdue > 0;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: ${isOverdue ? '#ef4444' : '#f59e0b'}; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${isOverdue ? 'Payment Overdue' : 'Payment Reminder'}</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${invoice.clientName},</p>
+            <p>${isOverdue 
+              ? `This is a friendly reminder that invoice ${invoice.invoiceNumber} is now ${daysOverdue} days overdue.`
+              : `This is a friendly reminder about invoice ${invoice.invoiceNumber}.`
+            }</p>
+            
+            <div class="invoice-details">
+              <h3>Invoice Details</h3>
+              <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+              <p><strong>Amount:</strong> $${invoice.amount}</p>
+              <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+              ${isOverdue ? `<p style="color: #ef4444;"><strong>Days Overdue:</strong> ${daysOverdue}</p>` : ''}
+            </div>
+
+            ${invoice.paymentLink ? `
+              <a href="${invoice.paymentLink}" class="button">Pay Now</a>
+            ` : ''}
+
+            <p>If you've already made this payment, please disregard this reminder.</p>
+            <p>Best regards,<br>${user.businessName || user.firstName + ' ' + user.lastName}</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getPaymentConfirmationTemplate(invoice, user) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #10b981; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✓ Payment Received</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${invoice.clientName},</p>
+            <p>Thank you! We've received your payment for invoice ${invoice.invoiceNumber}.</p>
+            
+            <div class="invoice-details">
+              <h3>Payment Details</h3>
+              <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+              <p><strong>Amount Paid:</strong> $${invoice.paidAmount || invoice.amount}</p>
+              <p><strong>Payment Date:</strong> ${new Date(invoice.paidDate).toLocaleDateString()}</p>
+            </div>
+
+            <p>A receipt has been generated for your records.</p>
+            <p>Thank you for your business!</p>
+            <p>Best regards,<br>${user.businessName || user.firstName + ' ' + user.lastName}</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getLowStockAlertTemplate(items, user) {
+    const itemsList = items.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.lowStockThreshold}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #f59e0b; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          table { width: 100%; background: white; border-radius: 8px; margin: 20px 0; }
+          th { background: #f3f4f6; padding: 10px; text-align: left; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>⚠️ Low Stock Alert</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>The following items are running low on stock:</p>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Current Stock</th>
+                  <th>Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsList}
+              </tbody>
+            </table>
+
+            <p>Consider restocking these items soon to avoid running out.</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getWelcomeTemplate(user) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Welcome to FlowFinance!</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>Welcome to FlowFinance! We're excited to help you manage your business finances with ease.</p>
+            
+            <h3>Get Started:</h3>
+            <ul>
+              <li>Connect your bank account for automatic transaction sync</li>
+              <li>Create your first invoice with payment links</li>
+              <li>Set up inventory tracking</li>
+              <li>Enable Profit First for automatic savings</li>
+              <li>Scan for tax deductions</li>
+            </ul>
+
+            <a href="${process.env.FRONTEND_URL}/dashboard" class="button">Go to Dashboard</a>
+
+            <p>If you have any questions, we're here to help!</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getPasswordResetTemplate(user, resetToken) {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #3b82f6; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Reset Your Password</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>We received a request to reset your password. Click the button below to create a new password:</p>
+            
+            <a href="${resetUrl}" class="button">Reset Password</a>
+
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+}
+
+module.exports = new EmailService();
