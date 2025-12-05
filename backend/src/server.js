@@ -23,13 +23,17 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Routes
-app.use('/api', routes);
-
-// Health check
+// Health check (both paths for convenience)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Routes
+app.use('/api', routes);
 
 // Cron jobs
 // Auto-chase overdue invoices daily at 9 AM

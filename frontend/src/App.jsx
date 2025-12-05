@@ -16,6 +16,7 @@ import Tax from './pages/Tax'
 import Reports from './pages/Reports'
 import Expenses from './pages/Expenses'
 import Settings from './pages/Settings'
+import TestingDashboard from './pages/TestingDashboard'
 import { loadUser } from './store/slices/authSlice'
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="testing" element={<TestingDashboard />} />
       </Route>
     </Routes>
   )

@@ -95,4 +95,8 @@ router.use('/setu', setuRoutes);
 const reportRoutes = require('./reports');
 router.use('/reports', reportRoutes);
 
+// Test routes (for testing dashboard)
+const testRoutes = require('./test');
+router.use('/test', testRoutes);
+
 module.exports = router;
