@@ -15,8 +15,7 @@ function Layout() {
     { path: '/expenses', label: 'Expenses' },
     { path: '/reports', label: 'Reports' },
     { path: '/inventory', label: 'Inventory' },
-    { path: '/tax', label: 'Tax' },
-    { path: '/testing', label: '🧪 Testing' }
+    { path: '/tax', label: 'Tax' }
   ]
 
   return (

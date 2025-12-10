@@ -55,7 +55,13 @@ const jobScheduler = require('./jobs/scheduler');
 const socketService = require('./socket');
 
 // Database sync and server start
-db.sequelize.sync({ alter: false }).then(() => {
+db.sequelize.sync({ alter: true }).then(async () => {
+  console.log('Database tables synced successfully');
+  
+  // Load learned categorization patterns
+  const aiService = require('./services/aiCategorizationService');
+  await aiService.loadLearnedPatterns();
+  
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     

@@ -5,777 +5,472 @@ const aiService = require('./aiService');
 
 class SetuService {
   constructor() {
-    // Setu API endpoints - Use env variable for flexibility
-    this.baseURL = process.env.SETU_BASE_URL || 'https://dg-sandbox.setu.co';
-    
-    // Credentials (server-side only)
+    // Setu AA FIU Configuration
+    this.baseURL = process.env.SETU_BASE_URL || 'https://fiu-sandbox.setu.co';
+    this.authURL = process.env.SETU_AUTH_URL || 'https://auth-v2.setu.co/realms/setu/protocol/openid-connect/token';
     this.clientId = process.env.SETU_CLIENT_ID;
     this.clientSecret = process.env.SETU_CLIENT_SECRET;
-    this.orgId = process.env.SETU_ORG_ID;
-    this.webhookSecret = process.env.SETU_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET_OR_VERIFY_KEY;
-    this.notificationUrl = process.env.SETU_WEBHOOK_URL || `${process.env.BACKEND_URL}/api/setu/webhook`;
-    this.redirectUrl = process.env.SETU_REDIRECT_URL || `${process.env.FRONTEND_URL}/consent/callback`;
-
-    // Token management
+    this.productInstanceId = process.env.SETU_PRODUCT_INSTANCE_ID;
+    this.redirectUrl = process.env.SETU_REDIRECT_URL || 'http://localhost:3001/consent/callback';
+    this.webhookUrl = process.env.SETU_WEBHOOK_URL || 'http://localhost:5000/api/setu/webhook';
     this.accessToken = null;
     this.tokenExpiry = null;
+    this.consentStates = new Map();
 
-    // Consent state tracking
-    this.consentStates = new Map(); // consentId -> {status, userId, dataSessionId}
-
-    // Check configuration
-    if (!this.clientId || !this.clientSecret || 
-        this.clientId === 'your_setu_client_id_here' || 
-        this.clientSecret === 'your_setu_client_secret_here') {
-      console.warn('\n⚠️  ========================================');
-      console.warn('⚠️  SETU NOT CONFIGURED');
-      console.warn('⚠️  ========================================');
-      console.warn('⚠️  Indian bank connections will not work.');
-      console.warn('⚠️  Sign up at https://setu.co/ to get credentials');
-      console.warn('⚠️  ========================================\n');
+    if (!this.clientId || !this.clientSecret || !this.productInstanceId) {
+      console.warn('\n⚠️  SETU AA NOT CONFIGURED - Indian bank connections disabled');
       this.configured = false;
       return;
     }
 
     this.configured = true;
-    console.log('✓ Setu AA service initialized for Indian banks');
+    console.log('✓ Setu AA service initialized');
     console.log('  Base URL:', this.baseURL);
-    console.log('  Notification URL:', this.notificationUrl);
+    console.log('  Product Instance ID:', this.productInstanceId);
   }
 
-  /**
-   * Get access token from Setu (server-side only)
-   * Uses Account Aggregator authentication method
-   */
   async getAccessToken() {
-    // Return cached token if still valid
     if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-      console.log('Using cached Setu access token');
       return this.accessToken;
     }
 
     try {
       console.log('\n=== Authenticating with Setu AA ===');
-      console.log('  Base URL:', this.baseURL);
-      console.log('  Client ID:', this.clientId);
+      console.log('  Auth URL:', this.authURL);
       
-      // Account Aggregator uses /session endpoint for authentication
-      const authEndpoint = `${this.baseURL}/session`;
-      console.log('  Auth endpoint:', authEndpoint);
-      
-      const authResponse = await axios.post(
-        authEndpoint,
-        {
-          clientID: this.clientId,
-          secret: this.clientSecret,
-        },
-        {
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-client-id': this.clientId,
-            'x-client-secret': this.clientSecret,
-          },
-          timeout: 10000,
-        }
-      );
+      const params = new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        scope: 'TEST'
+      });
 
-      this.accessToken = authResponse.data.token || authResponse.data.access_token;
-      const expiresIn = authResponse.data.expiresIn || authResponse.data.expires_in || 3600;
+      const response = await axios.post(this.authURL, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 15000
+      });
+
+      if (!response.data || !response.data.access_token) {
+        throw new Error('Invalid auth response: missing access_token');
+      }
+
+      this.accessToken = response.data.access_token;
+      const expiresIn = response.data.expires_in || 1800;
       this.tokenExpiry = Date.now() + (expiresIn * 1000) - 60000;
 
-      console.log('✓ Setu AA authentication successful');
-      console.log('  Token expires in:', expiresIn, 'seconds');
+      console.log('✓ Authentication successful');
       return this.accessToken;
-      
     } catch (error) {
       console.error('❌ Setu AA authentication failed');
+      console.error('  URL:', this.authURL);
       console.error('  Status:', error.response?.status);
-      console.error('  Error:', JSON.stringify(error.response?.data, null, 2));
       console.error('  Message:', error.message);
       
-      // Handle 401 - regenerate token
-      if (error.response?.status === 401) {
-        this.accessToken = null;
-        this.tokenExpiry = null;
+      if (error.code === 'ENOTFOUND') {
+        throw new Error(`Cannot connect to Setu Auth: ${this.authURL}`);
       }
-      
-      if (error.response?.data) {
-        throw new Error(`Setu Auth Failed: ${JSON.stringify(error.response.data)}`);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Invalid Setu credentials - Check SETU_CLIENT_ID and SETU_CLIENT_SECRET');
       }
-      throw new Error('Failed to authenticate with Setu AA. Please verify your credentials and base URL.');
+      throw new Error(`Setu auth failed: ${error.message}`);
     }
   }
 
-  /**
-   * Make authenticated API call to Setu AA with retry logic
-   */
-  async makeAuthenticatedRequest(method, endpoint, data = null, retries = 1) {
+  async makeAuthenticatedRequest(method, endpoint, data = null, retries = 2) {
     const token = await this.getAccessToken();
-    
     const config = {
       method,
       url: `${this.baseURL}${endpoint}`,
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'x-product-instance-id': this.productInstanceId,
+        'Content-Type': 'application/json'
       },
-      timeout: 30000,
+      timeout: 30000
     };
-
-    // Add org/product instance ID if required
-    if (this.orgId) {
-      config.headers['x-product-instance-id'] = this.orgId;
-    }
-
-    if (data) {
-      config.data = data;
-    }
+    if (data) config.data = data;
 
     try {
+      console.log(`  API: ${method} ${endpoint}`);
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error(`❌ Setu API call failed: ${method} ${endpoint}`);
+      console.error(`❌ API failed: ${method} ${endpoint}`);
       console.error('  Status:', error.response?.status);
-      console.error('  Error:', JSON.stringify(error.response?.data, null, 2));
+      if (error.response?.data) {
+        console.error('  Error:', JSON.stringify(error.response.data));
+      }
       
-      // Handle 401 - regenerate token and retry once
       if (error.response?.status === 401 && retries > 0) {
-        console.log('  Regenerating token and retrying...');
         this.accessToken = null;
         this.tokenExpiry = null;
         return this.makeAuthenticatedRequest(method, endpoint, data, retries - 1);
       }
-      
-      // Handle 5xx with exponential backoff
       if (error.response?.status >= 500 && retries > 0) {
-        const delay = Math.pow(2, 1 - retries) * 1000;
-        console.log(`  Retrying after ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         return this.makeAuthenticatedRequest(method, endpoint, data, retries - 1);
       }
-      
       throw error;
     }
   }
 
-  /**
-   * Create consent request for user to link their bank account
-   * Follows Setu AA consent flow with proper date range and notification setup
-   */
   async createConsentRequest(userId, userVua, fromDate, toDate) {
     if (!this.configured) {
-      throw new Error('Setu not configured. Please sign up at https://setu.co/ and add your credentials to backend/.env file');
+      throw new Error('Setu AA not configured. Add SETU_CLIENT_ID, SETU_CLIENT_SECRET, and SETU_PRODUCT_INSTANCE_ID to .env');
     }
 
     try {
-      console.log('\n=== Creating Setu AA Consent Request ===');
-      console.log('  User VUA:', userVua);
-      console.log('  Date Range:', fromDate, 'to', toDate);
-
-      // Format VUA (Virtual User Address) - typically mobile@handle
-      // e.g., 9999999999@onemoney
+      console.log('\n=== Creating Setu AA Consent ===');
       const vua = userVua.includes('@') ? userVua : `${userVua}@onemoney`;
+      const from = fromDate || new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+      const to = toDate || new Date().toISOString();
 
-      // Prepare date range in ISO8601 UTC format
-      const from_iso = fromDate ? new Date(fromDate).toISOString() : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-      const to_iso = toDate ? new Date(toDate).toISOString() : new Date().toISOString();
-
-      const consentRequest = {
-        vua: vua,
+      const consentPayload = {
         consentDuration: {
           unit: 'MONTH',
-          value: 3,
+          value: '24'
         },
+        vua: vua,
         dataRange: {
-          from: from_iso,
-          to: to_iso,
+          from: from,
+          to: to
         },
-        fiTypes: ['TRANSACTIONS'], // Request transaction data
-        purpose: {
-          code: '101',
-          text: 'Personal finance management and wealth tracking',
-          Category: {
-            type: 'PERSONAL_FINANCE',
-          },
-        },
-        redirectUrl: this.redirectUrl,
-        notificationUrl: this.notificationUrl,
+        consentTypes: ['PROFILE', 'SUMMARY', 'TRANSACTIONS'],
+        context: []
       };
 
-      console.log('  Request URL:', `${this.baseURL}/consents`);
-      console.log('  Request Body:', JSON.stringify(consentRequest, null, 2));
+      console.log('  VUA:', vua);
+      console.log('  Date range:', from, 'to', to);
 
-      const response = await this.makeAuthenticatedRequest('POST', '/consents', consentRequest);
+      const response = await this.makeAuthenticatedRequest('POST', '/v2/consents', consentPayload);
+      if (!response || !response.id) {
+        throw new Error('Invalid consent response');
+      }
 
-      console.log('✓ Consent created successfully');
-      console.log('  Consent ID:', response.id);
-      console.log('  Consent URL:', response.url);
-
-      // Track consent state
-      this.consentStates.set(response.id, {
-        status: 'PENDING',
-        userId,
-        createdAt: new Date(),
-      });
-
-      // Log audit trail
-      console.log(`[AUDIT] Consent created: ${response.id} for user: ${userId} at ${new Date().toISOString()}`);
+      console.log('✓ Consent created:', response.id);
+      console.log('  URL:', response.url);
+      this.consentStates.set(response.id, { status: 'PENDING', userId, createdAt: new Date() });
 
       return {
         consentId: response.id,
         consentUrl: response.url,
-        status: response.status || 'PENDING',
+        status: response.status || 'PENDING'
       };
     } catch (error) {
-      console.error('\n❌ Setu Consent Request Failed');
-      console.error('  Error Type:', error.constructor.name);
-      console.error('  Error Code:', error.code);
-      console.error('  Error Status:', error.response?.status);
-      console.error('  Error Data:', JSON.stringify(error.response?.data, null, 2));
-      
-      // Check for network errors
-      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-        throw new Error('Cannot connect to Setu API. Please check your internet connection or Setu service status.');
+      console.error('❌ Create consent failed:', error.message);
+      if (error.code === 'ENOTFOUND') {
+        throw new Error('Cannot connect to Setu AA. Check SETU_BASE_URL');
       }
-      
-      // More detailed error message
       if (error.response?.data) {
-        const errorMsg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
-        throw new Error(`Setu API Error: ${errorMsg}`);
+        const errMsg = error.response.data.message || JSON.stringify(error.response.data);
+        throw new Error(`Setu AA Error: ${errMsg}`);
       }
-      
-      throw new Error(error.message || 'Failed to create consent request for Indian bank');
+      throw new Error(`Failed to create consent: ${error.message}`);
     }
   }
 
-  /**
-   * Check consent status (polling)
-   * Status can be: PENDING, ACTIVE, APPROVED, REJECTED, REVOKED, EXPIRED
-   */
   async getConsentStatus(consentId) {
-    if (!this.configured) throw new Error('Setu not configured');
+    if (!this.configured) throw new Error('Setu AA not configured');
 
     try {
-      const response = await this.makeAuthenticatedRequest('GET', `/consents/${consentId}`);
-
-      // Update local state
+      const response = await this.makeAuthenticatedRequest('GET', `/v2/consents/${consentId}`);
       const state = this.consentStates.get(consentId);
       if (state) {
         state.status = response.status;
         this.consentStates.set(consentId, state);
       }
-
-      console.log(`[AUDIT] Consent status checked: ${consentId} - Status: ${response.status} at ${new Date().toISOString()}`);
-
+      console.log(`  Consent ${consentId}: ${response.status}`);
       return {
         id: response.id,
         status: response.status,
-        accounts: response.Accounts || [],
-        fiTypes: response.fiTypes || [],
+        accounts: response.accountsLinked || [],
+        detail: response.detail || {}
       };
     } catch (error) {
-      console.error('Setu consent status error:', error.response?.data || error.message);
+      console.error('Get consent status error:', error.message);
       throw error;
     }
   }
 
-  /**
-   * Create data session after consent is ACTIVE/APPROVED
-   * This requests Setu to prepare FI data for the linked accounts
-   */
-  async createDataSession(consentId, fromDate, toDate) {
-    if (!this.configured) throw new Error('Setu not configured');
+  async fetchAccounts(consentId) {
+    if (!this.configured) throw new Error('Setu AA not configured');
 
     try {
-      console.log('\n=== Creating Setu Data Session ===');
-      console.log('  Consent ID:', consentId);
-
-      // Check consent status first
+      console.log('\n=== Fetching Accounts ===');
       const consentStatus = await this.getConsentStatus(consentId);
-      if (consentStatus.status !== 'ACTIVE' && consentStatus.status !== 'APPROVED') {
-        throw new Error(`Consent not active. Current status: ${consentStatus.status}`);
-      }
+      const accounts = consentStatus.accounts || [];
+      console.log(`✓ Found ${accounts.length} linked accounts`);
+      return accounts;
+    } catch (error) {
+      console.error('Fetch accounts error:', error.message);
+      throw error;
+    }
+  }
 
-      // Prepare date range
-      const from_iso = fromDate ? new Date(fromDate).toISOString() : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-      const to_iso = toDate ? new Date(toDate).toISOString() : new Date().toISOString();
+  async fetchFIData(consentId, fromDate, toDate) {
+    if (!this.configured) throw new Error('Setu AA not configured');
 
-      const sessionData = {
+    try {
+      console.log('\n=== Fetching FI Data ===');
+      const from = fromDate || new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+      const to = toDate || new Date().toISOString();
+
+      const payload = {
         consentId: consentId,
-        fiTypes: ['TRANSACTIONS'],
-        dataRange: {
-          from: from_iso,
-          to: to_iso,
-        },
+        dataRange: { from: from, to: to }
       };
 
-      const response = await this.makeAuthenticatedRequest('POST', '/data-sessions', sessionData);
-      const dataSessionId = response.id || response.dataSessionId;
-
-      console.log('✓ Data session created:', dataSessionId);
-      console.log(`[AUDIT] Data session created: ${dataSessionId} for consent: ${consentId} at ${new Date().toISOString()}`);
-
-      // Update consent state
-      const state = this.consentStates.get(consentId);
-      if (state) {
-        state.dataSessionId = dataSessionId;
-        state.status = 'DATA_SESSION_CREATED';
-        this.consentStates.set(consentId, state);
+      const response = await this.makeAuthenticatedRequest('POST', '/v2/sessions', payload);
+      if (!response || !response.id) {
+        throw new Error('Invalid FI session response');
       }
 
-      return {
-        dataSessionId,
-        status: response.status || 'PENDING',
-      };
+      console.log('✓ FI session created:', response.id);
+      await this.waitForFIData(response.id);
+      const fiData = await this.makeAuthenticatedRequest('GET', `/v2/sessions/${response.id}`);
+      console.log('✓ FI data fetched');
+      return fiData;
     } catch (error) {
-      console.error('❌ Create data session error:', error.response?.data || error.message);
+      console.error('Fetch FI data error:', error.message);
       throw error;
     }
   }
 
-  /**
-   * Fetch transactions from data session
-   * Handles pagination and validates date range
-   */
-  async fetchTransactions(dataSessionId, fromDate, toDate) {
-    if (!this.configured) throw new Error('Setu not configured');
-
-    try {
-      console.log('\n=== Fetching Transactions from Data Session ===');
-      console.log('  Data Session ID:', dataSessionId);
-
-      // Wait for data session to be ready
-      await this.waitForDataSession(dataSessionId);
-
-      let allTransactions = [];
-      let nextCursor = null;
-      let page = 1;
-
-      do {
-        const endpoint = nextCursor 
-          ? `/data-sessions/${dataSessionId}/fetch?cursor=${nextCursor}`
-          : `/data-sessions/${dataSessionId}/fetch`;
-
-        const response = await this.makeAuthenticatedRequest('GET', endpoint);
-
-        console.log(`  Fetched page ${page}:`, response.transactions?.length || 0, 'transactions');
-
-        // Extract transactions
-        const transactions = response.transactions || response.data || [];
-        allTransactions = allTransactions.concat(transactions);
-
-        // Check for pagination
-        nextCursor = response.nextCursor || response.next;
-        page++;
-
-      } while (nextCursor);
-
-      console.log(`✓ Total transactions fetched: ${allTransactions.length}`);
-
-      // Validate date range
-      const from_iso = fromDate ? new Date(fromDate) : null;
-      const to_iso = toDate ? new Date(toDate) : null;
-
-      if (from_iso || to_iso) {
-        allTransactions = allTransactions.filter(txn => {
-          const txnDate = new Date(txn.date || txn.valueDate || txn.transactionTimestamp);
-          if (from_iso && txnDate < from_iso) return false;
-          if (to_iso && txnDate > to_iso) return false;
-          return true;
-        });
-        console.log(`  Transactions in date range: ${allTransactions.length}`);
-      }
-
-      console.log(`[AUDIT] Transactions fetched: ${allTransactions.length} from session: ${dataSessionId} at ${new Date().toISOString()}`);
-
-      return allTransactions;
-    } catch (error) {
-      console.error('❌ Fetch transactions error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Complete flow: fetch account data and transactions after consent approval
-   */
-  async fetchAccountData(consentId, userId, fromDate, toDate) {
-    if (!this.configured) throw new Error('Setu not configured');
-
-    try {
-      console.log('\n=== Fetching Account Data (Complete Flow) ===');
-      console.log('  Consent ID:', consentId);
-
-      // Step 1: Create data session
-      const { dataSessionId } = await this.createDataSession(consentId, fromDate, toDate);
-
-      // Step 2: Fetch transactions
-      const transactions = await this.fetchTransactions(dataSessionId, fromDate, toDate);
-
-      // Step 3: Fetch account details from consent
-      const consentDetails = await this.getConsentStatus(consentId);
-
-      // Step 4: Save accounts to database
-      const savedAccounts = await this.saveAccounts(consentDetails, userId, consentId);
-
-      // Step 5: Save transactions to database
-      await this.saveTransactions(transactions, userId, savedAccounts);
-
-      console.log('✓ Account data fetch complete');
-
-      return savedAccounts;
-    } catch (error) {
-      console.error('❌ Fetch account data error:', error.response?.data || error.message);
-      throw new Error('Failed to fetch Indian bank account data');
-    }
-  }
-
-  /**
-   * Wait for data session to be ready (polling with exponential backoff)
-   * Status can be: PENDING, ACTIVE, COMPLETED, FAILED
-   */
-  async waitForDataSession(dataSessionId, maxAttempts = 20) {
-    console.log('  Waiting for data session to be ready...');
-    
+  async waitForFIData(sessionId, maxAttempts = 15) {
+    console.log('  Waiting for FI data...');
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        const response = await this.makeAuthenticatedRequest('GET', `/data-sessions/${dataSessionId}`);
-
-        console.log(`  Attempt ${i + 1}: Status = ${response.status}`);
-
-        if (response.status === 'COMPLETED' || response.status === 'READY') {
-          console.log('  ✓ Data session ready');
+        const response = await this.makeAuthenticatedRequest('GET', `/v2/sessions/${sessionId}`);
+        console.log(`  Attempt ${i + 1}: ${response.status}`);
+        if (response.status === 'COMPLETED' || response.status === 'ACTIVE') {
+          console.log('  ✓ FI data ready');
           return true;
-        } else if (response.status === 'FAILED' || response.status === 'ERROR') {
-          throw new Error(`Data session failed: ${response.error || 'Unknown error'}`);
         }
-
-        // Exponential backoff: 2s, 4s, 6s, 8s, 10s...
-        const delay = Math.min(2000 + (i * 2000), 10000);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        if (response.status === 'FAILED' || response.status === 'EXPIRED') {
+          throw new Error(`FI data fetch ${response.status.toLowerCase()}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 3000));
       } catch (error) {
-        if (i === maxAttempts - 1) {
-          throw new Error(`Timeout waiting for data session. Last error: ${error.message}`);
-        }
-        // Continue polling on transient errors
-        if (error.response?.status >= 500) {
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          continue;
-        }
-        throw error;
+        if (i === maxAttempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
-    throw new Error('Timeout waiting for data session to be ready');
+    throw new Error('Timeout waiting for FI data');
   }
 
-  /**
-   * Save accounts to database from consent details
-   */
-  async saveAccounts(consentDetails, userId, consentId) {
-    const savedAccounts = [];
+  async fetchAccountData(consentId, userId, fromDate, toDate) {
+    if (!this.configured) throw new Error('Setu AA not configured');
 
-    for (const account of consentDetails.accounts || []) {
+    try {
+      console.log('\n=== Fetching Complete Account Data ===');
+      const consentStatus = await this.getConsentStatus(consentId);
+      if (consentStatus.status !== 'ACTIVE' && consentStatus.status !== 'APPROVED') {
+        throw new Error(`Consent not active: ${consentStatus.status}`);
+      }
+
+      const accounts = await this.fetchAccounts(consentId);
+      const savedAccounts = await this.saveAccounts(accounts, userId, consentId);
+      const fiData = await this.fetchFIData(consentId, fromDate, toDate);
+      await this.saveTransactions(fiData, userId, savedAccounts);
+
+      console.log('✓ Complete account data fetched');
+      return savedAccounts;
+    } catch (error) {
+      console.error('Fetch account data error:', error.message);
+      throw error;
+    }
+  }
+
+  async saveAccounts(accounts, userId, consentId) {
+    const savedAccounts = [];
+    for (const account of accounts) {
       try {
-        // Check if account already exists
         const existing = await Account.findOne({
-          where: {
-            userId,
-            setuAccountId: account.linkRefNumber || account.id,
-            provider: 'setu',
-          },
+          where: { userId, setuAccountId: account.linkRefNumber || account.id, provider: 'setu' }
         });
 
         if (existing) {
-          // Update existing account
           await existing.update({
             setuConsentId: consentId,
-            institutionName: account.fipName || account.institutionName || 'Indian Bank',
-            accountName: account.accType || account.accountType || 'Bank Account',
+            institutionName: account.fipName || 'Indian Bank',
+            accountName: account.accType || 'Bank Account',
             currentBalance: parseFloat(account.currentBalance || existing.currentBalance || 0),
-            availableBalance: parseFloat(account.availableBalance || existing.availableBalance || 0),
+            currency: 'INR',
             isActive: true,
-            lastSynced: new Date(),
+            lastSynced: new Date()
           });
           savedAccounts.push(existing);
-          console.log('  ✓ Updated account:', existing.accountName);
+          console.log('  ✓ Updated:', existing.accountName);
         } else {
-          // Create new account
           const newAccount = await Account.create({
             userId,
             setuConsentId: consentId,
             setuAccountId: account.linkRefNumber || account.id,
-            institutionId: account.FIType || account.fiType || 'DEPOSIT',
-            institutionName: account.fipName || account.institutionName || 'Indian Bank',
-            accountId: account.maskedAccNumber || account.accountNumber || 'XXXX',
-            accountName: account.accType || account.accountType || 'Bank Account',
-            accountType: account.type || 'depository',
-            accountSubtype: account.FIType || account.fiType || 'savings',
+            institutionId: account.FIType || 'DEPOSIT',
+            institutionName: account.fipName || 'Indian Bank',
+            accountId: account.maskedAccNumber || 'XXXX',
+            accountName: account.accType || 'Bank Account',
+            accountType: 'depository',
+            accountSubtype: 'savings',
             currentBalance: parseFloat(account.currentBalance || 0),
             availableBalance: parseFloat(account.availableBalance || 0),
-            currency: account.currency || 'INR',
+            currency: 'INR',
             isActive: true,
             provider: 'setu',
-            lastSynced: new Date(),
+            lastSynced: new Date()
           });
           savedAccounts.push(newAccount);
-          console.log('  ✓ Created account:', newAccount.accountName);
+          console.log('  ✓ Created:', newAccount.accountName);
         }
       } catch (error) {
         console.error('  Error saving account:', error.message);
       }
     }
-
     console.log(`✓ Saved ${savedAccounts.length} accounts`);
     return savedAccounts;
   }
 
-  /**
-   * Save transactions to database with deduplication
-   * Normalizes timezone to UTC and tags merchant names
-   */
-  async saveTransactions(transactions, userId, accounts) {
+  async saveTransactions(fiData, userId, accounts) {
+    if (!fiData || !fiData.transactions) {
+      console.log('  No transactions to save');
+      return [];
+    }
+
     const savedTransactions = [];
-    const seenTxnIds = new Set();
+    const transactions = fiData.transactions || [];
 
     for (const txn of transactions) {
       try {
-        // Deduplicate by transaction ID
         const txnId = txn.txnId || txn.id || `${txn.date}_${txn.amount}_${txn.narration}`;
-        if (seenTxnIds.has(txnId)) {
-          console.log('  Skipping duplicate transaction:', txnId);
-          continue;
-        }
-        seenTxnIds.add(txnId);
-
-        // Find matching account
         const account = accounts.find(a => 
-          a.setuAccountId === txn.accountId || 
-          a.accountId === txn.maskedAccNumber
-        ) || accounts[0]; // Fallback to first account
+          a.setuAccountId === txn.accountId || a.accountId === txn.maskedAccNumber
+        ) || accounts[0];
+        if (!account) continue;
 
-        if (!account) {
-          console.log('  No account found for transaction:', txnId);
-          continue;
-        }
-
-        // Check if transaction already exists
         const existing = await Transaction.findOne({
-          where: {
-            setuTransactionId: txnId,
-            accountId: account.id,
-          },
+          where: { setuTransactionId: txnId, accountId: account.id }
         });
+        if (existing) continue;
 
-        // Normalize date to UTC
         const txnDate = new Date(txn.date || txn.valueDate || txn.transactionTimestamp);
         const amount = Math.abs(parseFloat(txn.amount || 0));
         const description = txn.narration || txn.description || 'Transaction';
         const txnType = (txn.type === 'CREDIT' || txn.txnType === 'CREDIT') ? 'income' : 'expense';
 
-        if (existing) {
-          // Update existing transaction
-          await existing.update({
-            amount,
-            date: txnDate,
-            description,
-            type: txnType,
-          });
-          savedTransactions.push(existing);
-        } else {
-          // AI categorize the transaction
-          let aiResult = { category: 'Other', confidence: 0.5 };
-          try {
-            aiResult = await aiService.categorizeTransaction(description, txn.reference || '', amount);
-          } catch (aiError) {
-            console.log('  AI categorization failed, using default');
-          }
-
-          // Create new transaction
-          const newTransaction = await Transaction.create({
-            userId,
-            accountId: account.id,
-            setuTransactionId: txnId,
-            amount,
-            date: txnDate,
-            description,
-            merchantName: txn.reference || txn.merchant || null,
-            category: txnType === 'income' ? 'Revenue' : aiResult.category,
-            aiCategory: aiResult.category,
-            aiCategoryConfidence: aiResult.confidence,
-            type: txnType,
-            pending: false,
-          });
-
-          savedTransactions.push(newTransaction);
+        let aiResult = { category: 'Other', confidence: 0.5 };
+        try {
+          aiResult = await aiService.categorizeTransaction(description, txn.reference || '', amount);
+        } catch (aiError) {
+          console.log('  AI categorization failed');
         }
+
+        const newTransaction = await Transaction.create({
+          userId,
+          accountId: account.id,
+          setuTransactionId: txnId,
+          amount,
+          date: txnDate,
+          description,
+          merchantName: txn.reference || txn.merchant || null,
+          category: txnType === 'income' ? 'Revenue' : aiResult.category,
+          aiCategory: aiResult.category,
+          aiCategoryConfidence: aiResult.confidence,
+          type: txnType,
+          pending: false
+        });
+        savedTransactions.push(newTransaction);
       } catch (error) {
         console.error('  Error saving transaction:', error.message);
       }
     }
-
     console.log(`✓ Saved ${savedTransactions.length} transactions`);
-    console.log(`[AUDIT] Transactions saved: ${savedTransactions.length} at ${new Date().toISOString()}`);
-    
     return savedTransactions;
   }
 
-  /**
-   * Verify webhook signature from Setu
-   * Always verify before trusting webhook payload
-   */
-  verifyWebhookSignature(payload, signature) {
-    if (!this.webhookSecret) {
-      console.warn('⚠️  Webhook secret not configured - skipping signature verification');
-      return true; // Allow in dev/testing, but log warning
-    }
-
-    try {
-      // Setu typically uses HMAC-SHA256 for webhook signatures
-      const expectedSignature = crypto
-        .createHmac('sha256', this.webhookSecret)
-        .update(JSON.stringify(payload))
-        .digest('hex');
-
-      const isValid = crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-      );
-
-      if (!isValid) {
-        console.error('❌ Invalid webhook signature');
-        return false;
-      }
-
-      console.log('✓ Webhook signature verified');
-      return true;
-    } catch (error) {
-      console.error('❌ Webhook signature verification error:', error.message);
-      return false;
-    }
-  }
-
-  /**
-   * Handle webhook notification from Setu
-   * Called when consent status changes or data is ready
-   */
   async handleWebhook(payload, signature) {
-    console.log('\n=== Setu Webhook Received ===');
+    console.log('\n=== Setu Webhook ===');
     console.log('  Event:', payload.event);
-    console.log('  Consent ID:', payload.consentId);
 
-    // Verify signature
-    if (!this.verifyWebhookSignature(payload, signature)) {
-      throw new Error('Invalid webhook signature');
+    if (signature && this.webhookSecret) {
+      const isValid = this.verifyWebhookSignature(payload, signature);
+      if (!isValid) throw new Error('Invalid webhook signature');
     }
 
     const { consentId, event, status } = payload;
-
-    // Update consent state
     const state = this.consentStates.get(consentId);
     if (state) {
       state.status = status;
       state.lastEvent = event;
-      state.lastUpdated = new Date();
       this.consentStates.set(consentId, state);
     }
 
-    console.log(`[AUDIT] Webhook processed: ${event} for consent: ${consentId} at ${new Date().toISOString()}`);
-
-    // Handle different events
     switch (event) {
       case 'CONSENT_APPROVED':
       case 'CONSENT_ACTIVE':
-        console.log('  ✓ Consent approved - ready to create data session');
-        if (state) state.status = 'ACTIVE';
+        console.log('  ✓ Consent approved');
         break;
-
       case 'CONSENT_REJECTED':
-        console.log('  ✗ Consent rejected by user');
-        if (state) state.status = 'REJECTED';
+        console.log('  ✗ Consent rejected');
         break;
-
       case 'CONSENT_REVOKED':
-        console.log('  ✗ Consent revoked - purging data');
-        if (state) {
-          state.status = 'REVOKED';
-          // Trigger data deletion if required by retention policy
-          await this.handleConsentRevoked(consentId, state.userId);
-        }
+        console.log('  ✗ Consent revoked');
+        await this.handleConsentRevoked(consentId, state?.userId);
         break;
-
       case 'DATA_READY':
-        console.log('  ✓ Data ready - can fetch now');
-        if (state) state.status = 'DATA_READY';
+        console.log('  ✓ Data ready');
         break;
-
-      default:
-        console.log('  Unknown event:', event);
     }
 
     return { received: true, status: state?.status };
   }
 
-  /**
-   * Handle consent revocation - purge stored data per compliance
-   */
-  async handleConsentRevoked(consentId, userId) {
+  verifyWebhookSignature(payload, signature) {
+    if (!this.webhookSecret) return true;
     try {
-      console.log('  Handling consent revocation:', consentId);
-
-      // Find and deactivate accounts
-      const accounts = await Account.findAll({
-        where: {
-          userId,
-          setuConsentId: consentId,
-          provider: 'setu',
-        },
-      });
-
-      for (const account of accounts) {
-        await account.update({ isActive: false });
-        console.log('  Deactivated account:', account.id);
-      }
-
-      // Optionally delete transactions (based on retention policy)
-      // await Transaction.destroy({ where: { accountId: accounts.map(a => a.id) } });
-
-      console.log(`[AUDIT] Consent revoked data purged: ${consentId} at ${new Date().toISOString()}`);
+      const expectedSignature = crypto
+        .createHmac('sha256', this.webhookSecret)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
     } catch (error) {
-      console.error('  Error handling consent revocation:', error.message);
+      console.error('❌ Webhook verification error:', error.message);
+      return false;
     }
   }
 
-  /**
-   * Remove account and revoke consent
-   * Respects consent duration and DEPA/RBI guidelines
-   */
+  async handleConsentRevoked(consentId, userId) {
+    try {
+      const accounts = await Account.findAll({
+        where: { userId, setuConsentId: consentId, provider: 'setu' }
+      });
+      for (const account of accounts) {
+        await account.update({ isActive: false });
+      }
+    } catch (error) {
+      console.error('  Error handling revocation:', error.message);
+    }
+  }
+
   async removeAccount(accountId, userId) {
     try {
       const account = await Account.findOne({
-        where: { id: accountId, userId, provider: 'setu' },
+        where: { id: accountId, userId, provider: 'setu' }
       });
+      if (!account) throw new Error('Account not found');
 
-      if (!account) {
-        throw new Error('Account not found');
-      }
-
-      // Revoke consent if configured
       if (account.setuConsentId && this.configured) {
         try {
-          await this.makeAuthenticatedRequest('DELETE', `/consents/${account.setuConsentId}`);
-          console.log('✓ Consent revoked:', account.setuConsentId);
-          console.log(`[AUDIT] Consent revoked: ${account.setuConsentId} by user: ${userId} at ${new Date().toISOString()}`);
+          await this.makeAuthenticatedRequest('DELETE', `/v2/consents/${account.setuConsentId}`);
+          console.log('✓ Consent revoked');
         } catch (error) {
           console.error('Error revoking consent:', error.message);
         }
       }
 
-      // Soft delete account (preserve for audit)
       await account.update({ isActive: false });
-
       return { success: true };
     } catch (error) {
-      console.error('Remove Setu account error:', error);
+      console.error('Remove account error:', error);
       throw error;
     }
   }

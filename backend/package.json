@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@huggingface/inference": "^2.8.1",
+    "@huggingface/inference": "^4.13.5",
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",

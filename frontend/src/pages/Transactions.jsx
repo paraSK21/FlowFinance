@@ -1,25 +1,73 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchTransactions } from '../store/slices/transactionSlice'
 import { format } from 'date-fns'
-import { Coffee, ShoppingBag, CreditCard, TrendingUp, Filter } from 'lucide-react'
+import { Coffee, ShoppingBag, CreditCard, TrendingUp, Filter, AlertCircle, Check, X } from 'lucide-react'
+import api from '../services/api'
+import toast from 'react-hot-toast'
 
 function Transactions() {
   const dispatch = useDispatch()
   const { transactions, loading, error } = useSelector(state => state.transactions)
+  const [showNeedsReview, setShowNeedsReview] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState('')
+
+  const categories = [
+    'Revenue', 'Meals & Entertainment', 'Operations', 'Marketing',
+    'Utilities', 'Travel', 'Professional Services', 'Payroll',
+    'Rent', 'Insurance', 'Taxes', 'Inventory', 'Office Supplies', 'Other'
+  ]
 
   useEffect(() => {
-    dispatch(fetchTransactions({ limit: 100 }))
-  }, [dispatch])
+    if (showNeedsReview) {
+      loadNeedsReview()
+    } else {
+      dispatch(fetchTransactions({ limit: 100 }))
+    }
+  }, [dispatch, showNeedsReview])
+
+  const loadNeedsReview = async () => {
+    try {
+      const response = await api.get('/transactions/needs-review')
+      // Update Redux store or use local state
+    } catch (err) {
+      console.error('Failed to load transactions needing review:', err)
+    }
+  }
+
+  const handleCorrectCategory = async (transactionId, newCategory) => {
+    try {
+      await api.put(`/transactions/${transactionId}/correct-category`, {
+        category: newCategory
+      })
+      toast.success('Category corrected and pattern learned!')
+      setEditingCategory(null)
+      dispatch(fetchTransactions({ limit: 100 }))
+    } catch (err) {
+      toast.error('Failed to correct category')
+      console.error(err)
+    }
+  }
 
   console.log('Transactions state:', { transactions, loading, error })
 
   const getCategoryIcon = (category) => {
     const icons = {
+      'Revenue': { icon: CreditCard, color: '#10b981' },
       'Meals & Entertainment': { icon: Coffee, color: '#f59e0b' },
       'Operations': { icon: ShoppingBag, color: '#3b82f6' },
-      'Revenue': { icon: CreditCard, color: '#10b981' },
-      'Office Supplies': { icon: ShoppingBag, color: '#8b5cf6' }
+      'Marketing': { icon: TrendingUp, color: '#ec4899' },
+      'Utilities': { icon: ShoppingBag, color: '#8b5cf6' },
+      'Travel': { icon: ShoppingBag, color: '#06b6d4' },
+      'Professional Services': { icon: ShoppingBag, color: '#14b8a6' },
+      'Payroll': { icon: ShoppingBag, color: '#f97316' },
+      'Rent': { icon: ShoppingBag, color: '#84cc16' },
+      'Insurance': { icon: ShoppingBag, color: '#a855f7' },
+      'Taxes': { icon: ShoppingBag, color: '#ef4444' },
+      'Inventory': { icon: ShoppingBag, color: '#3b82f6' },
+      'Office Supplies': { icon: ShoppingBag, color: '#64748b' },
+      'Other': { icon: TrendingUp, color: '#6b7280' }
     }
     return icons[category] || { icon: TrendingUp, color: '#6b7280' }
   }
@@ -70,21 +118,42 @@ function Transactions() {
               AI-categorized transaction history
             </p>
           </div>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 16px',
-            background: '#1a1f2e',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '8px',
-            color: '#d1d5db',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}>
-            <Filter size={16} />
-            Filter
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={() => setShowNeedsReview(!showNeedsReview)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                background: showNeedsReview ? '#f59e0b' : '#1a1f2e',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: showNeedsReview ? '#000' : '#d1d5db',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: showNeedsReview ? '600' : '400'
+              }}
+            >
+              <AlertCircle size={16} />
+              {showNeedsReview ? 'Show All' : 'Needs Review'}
+            </button>
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              background: '#1a1f2e',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              color: '#d1d5db',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}>
+              <Filter size={16} />
+              Filter
+            </button>
+          </div>
         </div>
 
         {/* Transactions List */}
@@ -132,8 +201,14 @@ function Transactions() {
                 transactions.map((txn) => {
                   const categoryInfo = getCategoryIcon(txn.aiCategory || txn.category)
                   const Icon = categoryInfo.icon
+                  const isLowConfidence = txn.needsReview || (txn.aiCategoryConfidence && txn.aiCategoryConfidence < 0.75)
+                  const isEditing = editingCategory === txn.id
+                  
                   return (
-                    <tr key={txn.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <tr key={txn.id} style={{ 
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                      background: isLowConfidence ? 'rgba(245, 158, 11, 0.05)' : 'transparent'
+                    }}>
                       <td style={{ padding: '16px 20px' }}>
                         <span style={{ fontSize: '14px', color: '#d1d5db' }}>
                           {format(new Date(txn.date), 'MMM dd, yyyy')}
@@ -152,22 +227,92 @@ function Transactions() {
                           }}>
                             <Icon size={18} color={categoryInfo.color} />
                           </div>
-                          <span style={{ fontSize: '14px', color: '#d1d5db', fontWeight: '500' }}>
-                            {txn.description || txn.merchantName}
-                          </span>
+                          <div>
+                            <div style={{ fontSize: '14px', color: '#d1d5db', fontWeight: '500' }}>
+                              {txn.description || txn.merchantName}
+                            </div>
+                            {isLowConfidence && (
+                              <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <AlertCircle size={12} />
+                                Low confidence ({Math.round((txn.aiCategoryConfidence || 0) * 100)}%)
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          background: `${categoryInfo.color}20`,
-                          color: categoryInfo.color,
-                          fontWeight: '500'
-                        }}>
-                          {txn.aiCategory || txn.category}
-                        </span>
+                        {isEditing ? (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <select
+                              value={selectedCategory}
+                              onChange={(e) => setSelectedCategory(e.target.value)}
+                              style={{
+                                padding: '6px 10px',
+                                background: '#0f1419',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                color: '#d1d5db',
+                                fontSize: '12px'
+                              }}
+                            >
+                              <option value="">Select...</option>
+                              {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => {
+                                if (selectedCategory) {
+                                  handleCorrectCategory(txn.id, selectedCategory)
+                                }
+                              }}
+                              style={{
+                                padding: '6px',
+                                background: '#10b981',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <Check size={14} color="#fff" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCategory(null)}
+                              style={{
+                                padding: '6px',
+                                background: '#ef4444',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <X size={14} color="#fff" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span 
+                            onClick={() => {
+                              setEditingCategory(txn.id)
+                              setSelectedCategory(txn.aiCategory || txn.category)
+                            }}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              background: `${categoryInfo.color}20`,
+                              color: categoryInfo.color,
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              display: 'inline-block'
+                            }}
+                          >
+                            {txn.aiCategory || txn.category}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <span style={{
@@ -175,7 +320,7 @@ function Transactions() {
                           fontWeight: '600',
                           color: txn.type === 'income' ? '#10b981' : '#d1d5db'
                         }}>
-                          {txn.type === 'income' ? '+' : '-'}${Math.abs(txn.amount).toLocaleString()}
+                          {txn.type === 'income' ? '+' : '-'}₹{Math.abs(txn.amount).toLocaleString()}
                         </span>
                       </td>
                     </tr>

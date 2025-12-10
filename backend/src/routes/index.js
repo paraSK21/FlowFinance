@@ -36,9 +36,14 @@ router.post('/accounts/sync', authenticate, accountController.syncTransactions);
 
 // Transaction routes
 router.get('/transactions', authenticate, transactionController.getTransactions);
+router.get('/transactions/stats/summary', authenticate, transactionController.getStats);
+router.get('/transactions/needs-review', authenticate, transactionController.getLowConfidenceTransactions);
+router.get('/transactions/learned-patterns', authenticate, transactionController.getLearnedPatterns);
+router.post('/transactions/bulk-recategorize', authenticate, transactionController.bulkRecategorize);
 router.get('/transactions/:id', authenticate, transactionController.getTransaction);
 router.put('/transactions/:id', authenticate, transactionController.updateTransaction);
-router.get('/transactions/stats/summary', authenticate, transactionController.getStats);
+router.put('/transactions/:id/correct-category', authenticate, transactionController.correctCategory);
+router.delete('/transactions/learned-patterns/:merchantToken', authenticate, transactionController.deleteLearnedPattern);
 
 // Invoice routes
 router.post('/invoices', authenticate, invoiceController.createInvoice);

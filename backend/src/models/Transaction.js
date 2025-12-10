@@ -52,6 +52,15 @@ module.exports = (sequelize, DataTypes) => {
     aiCategoryConfidence: {
       type: DataTypes.FLOAT
     },
+    categorizationMethod: {
+      type: DataTypes.STRING,
+      comment: 'learned_pattern, rule_based, or ai_fallback'
+    },
+    needsReview: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      comment: 'True if confidence is low and needs manual review'
+    },
     subcategory: {
       type: DataTypes.STRING
     },

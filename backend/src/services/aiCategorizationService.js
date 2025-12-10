@@ -7,135 +7,310 @@ class AICategorizationService {
       ? new HfInference(process.env.HUGGINGFACE_API_KEY) 
       : null;
 
-    this.openai = process.env.OPENAI_API_KEY ? {
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: 'https://api.openai.com/v1',
-    } : null;
-
     this.categories = [
       'Revenue',
       'Meals & Entertainment',
       'Operations',
       'Marketing',
       'Utilities',
-      'Office Supplies',
       'Travel',
       'Professional Services',
-      'Inventory',
       'Payroll',
       'Rent',
       'Insurance',
       'Taxes',
+      'Inventory',
+      'Office Supplies',
       'Other'
     ];
 
-    // Rule-based patterns (learned from historical data)
+    // In-memory cache for learned patterns (loaded from DB on startup)
     this.merchantPatterns = new Map();
     this.categoryKeywords = this.buildCategoryKeywords();
+    this.merchantMappings = this.buildMerchantMappings();
   }
 
   buildCategoryKeywords() {
     return {
-      'Revenue': ['payment', 'deposit', 'invoice', 'sale', 'income', 'revenue', 'client payment'],
-      'Meals & Entertainment': ['restaurant', 'cafe', 'coffee', 'dinner', 'lunch', 'starbucks', 'food', 'bar', 'catering'],
-      'Operations': ['supplies', 'equipment', 'office', 'amazon', 'staples', 'maintenance', 'repair'],
-      'Marketing': ['advertising', 'facebook ads', 'google ads', 'marketing', 'promotion', 'social media', 'seo'],
-      'Utilities': ['electric', 'power', 'water', 'internet', 'phone', 'verizon', 'at&t', 'comcast', 'utility'],
-      'Travel': ['hotel', 'flight', 'uber', 'lyft', 'airbnb', 'travel', 'fuel', 'gas', 'parking', 'airline'],
-      'Professional Services': ['legal', 'accounting', 'consulting', 'attorney', 'lawyer', 'cpa', 'consultant'],
-      'Payroll': ['salary', 'wage', 'payroll', 'gusto', 'adp', 'employee', 'contractor'],
-      'Rent': ['rent', 'lease', 'property', 'landlord'],
-      'Insurance': ['insurance', 'premium', 'policy'],
-      'Taxes': ['tax', 'irs', 'state tax', 'federal tax'],
-      'Inventory': ['inventory', 'stock', 'wholesale', 'supplier', 'vendor'],
-      'Office Supplies': ['office depot', 'staples', 'paper', 'printer', 'supplies']
+      'Revenue': ['payout', 'settlement', 'sales', 'stripe', 'razorpay payout', 'cashfree settlement', 
+                  'customer payment', 'invoice paid', 'payment received', 'credit', 'deposit', 'income'],
+      'Meals & Entertainment': ['zomato', 'swiggy', 'dominos', 'starbucks', 'café', 'cafe', 'restaurant', 
+                                'diner', 'food', 'pizza', 'burger', 'mcdonald', 'kfc', 'subway', 'dunkin'],
+      'Operations': ['maintenance', 'repair', 'equipment', 'machinery', 'tools', 'hardware', 'software license'],
+      'Marketing': ['amazon ads', 'meta ads', 'google ads', 'facebook ads', 'instagram ads', 'linkedin ads',
+                    'campaign', 'ad spend', 'advertising', 'promotion', 'marketing', 'seo', 'sem'],
+      'Utilities': ['electricity bill', 'electric', 'power', 'water bill', 'wifi', 'broadband', 'internet',
+                    'mobile recharge', 'jio', 'airtel', 'vodafone', 'vi', 'bsnl', 'gas bill', 'lpg'],
+      'Travel': ['uber', 'ola', 'rapido', 'airline', 'indigo', 'spicejet', 'air india', 'vistara', 'irctc',
+                 'flight', 'hotel', 'booking.com', 'makemytrip', 'goibibo', 'oyo', 'treebo', 'toll', 'parking'],
+      'Professional Services': ['consulting', 'consultant', 'ca fees', 'chartered accountant', 'legal fees',
+                                'lawyer', 'attorney', 'audit', 'freelancer', 'contractor invoice', 'advisory'],
+      'Payroll': ['salary', 'payroll', 'wages', 'stipend', 'employee', 'staff payment', 'bonus', 'incentive'],
+      'Rent': ['rent', 'lease', 'landlord', 'property rent', 'office rent', 'warehouse rent'],
+      'Insurance': ['insurance', 'premium', 'policy', 'lic', 'hdfc life', 'icici lombard', 'bajaj allianz',
+                    'star health', 'max life', 'sbi life'],
+      'Taxes': ['tax', 'tds', 'tds payment', 'advance tax', 'gst payment', 'gst', 'income tax', 'itr'],
+      'Inventory': ['supplier', 'vendor', 'wholesale', 'stock purchase', 'raw material', 'goods'],
+      'Office Supplies': ['notebook', 'stationery', 'printer ink', 'pens', 'office chair', 'desk', 'paper',
+                          'stapler', 'file', 'folder']
+    };
+  }
+
+  buildMerchantMappings() {
+    return {
+      // IT/Electronics Equipment -> Inventory or Operations
+      'Inventory': ['lenovo', 'dell', 'hp', 'croma', 'reliance digital', 'asus', 'acer', 'apple store',
+                    'samsung', 'lg', 'sony', 'flipkart', 'amazon india'],
+      // Food Delivery
+      'Meals & Entertainment': ['zomato', 'swiggy', 'dominos', 'pizza hut', 'starbucks', 'mcdonald',
+                                'kfc', 'subway', 'burger king', 'dunkin donuts'],
+      // Advertising Platforms
+      'Marketing': ['meta', 'facebook', 'instagram', 'google ads', 'linkedin', 'twitter ads'],
+      // Travel Services
+      'Travel': ['uber', 'ola', 'rapido', 'indigo', 'spicejet', 'air india', 'vistara', 'irctc',
+                 'makemytrip', 'goibibo', 'oyo', 'treebo', 'booking.com'],
+      // Telecom & Utilities
+      'Utilities': ['jio', 'airtel', 'vodafone', 'vi', 'bsnl', 'tata sky', 'dish tv', 'hathway'],
+      // Insurance Companies
+      'Insurance': ['lic', 'hdfc life', 'icici lombard', 'bajaj allianz', 'star health', 'max life', 'sbi life'],
+      // Payment Gateways (Revenue)
+      'Revenue': ['razorpay', 'stripe', 'cashfree', 'paytm', 'phonepe', 'instamojo']
     };
   }
 
   /**
-   * Hybrid AI Categorization: Rules + ML + LLM
+   * Three-Tier Categorization Pipeline: User Corrections → Rules → AI Fallback
    */
-  async categorizeTransaction(description, merchantName, amount, userId = null) {
+  async categorizeTransaction(description, merchantName, amount, userId = null, transactionType = null) {
     try {
-      // Step 1: Check learned patterns (fastest)
-      const learnedCategory = this.checkLearnedPatterns(merchantName, userId);
+      // Normalize inputs
+      const normalizedDesc = (description || '').toLowerCase().trim();
+      const normalizedMerchant = (merchantName || '').toLowerCase().trim();
+      
+      // Parse UPI/IMPS/NEFT narrations to extract merchant tokens
+      const parsedData = this.parseIndianPaymentNarration(normalizedDesc, normalizedMerchant);
+      const merchantTokens = parsedData.merchantTokens;
+      const cleanNarration = parsedData.cleanNarration;
+
+      // TIER 1: User Correction Memory (Highest Priority - Hard Override)
+      const learnedCategory = await this.checkLearnedPatterns(merchantTokens, amount, userId);
       if (learnedCategory) {
         return {
-          category: learnedCategory,
+          category: learnedCategory.category,
           confidence: 0.95,
-          method: 'learned',
+          method: 'learned_pattern',
+          matchedToken: learnedCategory.matchedToken
         };
       }
 
-      // Step 2: Rule-based categorization (fast)
-      const ruleResult = this.ruleBasedCategorization(description, merchantName, amount);
-      if (ruleResult.confidence >= 0.8) {
+      // TIER 2: Rule-Based Engine (Fast & Deterministic)
+      const ruleResult = this.ruleBasedCategorization(
+        cleanNarration, 
+        merchantTokens, 
+        amount, 
+        transactionType
+      );
+      if (ruleResult.confidence >= 0.85) {
         return ruleResult;
       }
 
-      // Step 3: LLM categorization (most accurate but slower)
-      if (this.openai || this.hf) {
-        const llmResult = await this.llmCategorization(description, merchantName, amount);
-        if (llmResult.confidence >= 0.7) {
-          // Learn this pattern for future
-          this.learnPattern(merchantName, llmResult.category, userId);
+      // TIER 3: AI/LLM Fallback (Only if rules are not confident)
+      if (this.hf) {
+        const llmResult = await this.llmCategorization(cleanNarration, merchantTokens.join(' '), amount);
+        if (llmResult.confidence >= 0.70) {
           return llmResult;
         }
       }
 
-      // Fallback to rule-based result
+      // Final fallback to rule result (even if low confidence)
       return ruleResult;
     } catch (error) {
-      console.error('AI categorization error:', error);
-      return this.ruleBasedCategorization(description, merchantName, amount);
+      console.error('Categorization error:', error);
+      return { category: 'Other', confidence: 0.3, method: 'error' };
     }
   }
 
   /**
-   * Check learned patterns from previous categorizations
+   * Parse Indian UPI/IMPS/NEFT narrations to extract merchant info
+   * Example: "UPI/34345345/LENOVO_STORE@icici/LENOVO DLR" -> ["lenovo", "lenovo_store"]
    */
-  checkLearnedPatterns(merchantName, userId) {
-    if (!merchantName) return null;
+  parseIndianPaymentNarration(description, merchantName) {
+    const tokens = new Set();
+    const combined = `${description} ${merchantName}`;
     
-    const key = userId ? `${userId}:${merchantName.toLowerCase()}` : merchantName.toLowerCase();
-    return this.merchantPatterns.get(key);
+    // Extract UPI VPA handles (e.g., LENOVO_STORE@icici)
+    const vpaMatch = combined.match(/([a-z0-9_]+)@[a-z]+/gi);
+    if (vpaMatch) {
+      vpaMatch.forEach(vpa => {
+        const handle = vpa.split('@')[0].toLowerCase();
+        tokens.add(handle);
+        // Also add individual words from underscore-separated handles
+        handle.split('_').forEach(part => {
+          if (part.length > 2) tokens.add(part);
+        });
+      });
+    }
+
+    // Extract merchant-like tokens from UPI narration (between slashes)
+    const upiParts = combined.split('/');
+    upiParts.forEach(part => {
+      const cleaned = part.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
+      cleaned.split(/\s+/).forEach(word => {
+        if (word.length > 3 && !this.isNoiseWord(word)) {
+          tokens.add(word);
+        }
+      });
+    });
+
+    // Clean narration for keyword matching
+    const cleanNarration = combined
+      .replace(/upi\/\d+\//gi, '')
+      .replace(/imps\/\d+\//gi, '')
+      .replace(/neft\/\d+\//gi, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .toLowerCase()
+      .trim();
+
+    return {
+      merchantTokens: Array.from(tokens),
+      cleanNarration
+    };
+  }
+
+  isNoiseWord(word) {
+    const noise = ['upi', 'imps', 'neft', 'rtgs', 'payment', 'transfer', 'from', 'to', 'via'];
+    return noise.includes(word);
   }
 
   /**
-   * Learn pattern for future categorizations
+   * Check learned patterns from user corrections (DB-backed)
    */
-  learnPattern(merchantName, category, userId) {
-    if (!merchantName) return;
-    
-    const key = userId ? `${userId}:${merchantName.toLowerCase()}` : merchantName.toLowerCase();
-    this.merchantPatterns.set(key, category);
-  }
+  async checkLearnedPatterns(merchantTokens, amount, userId) {
+    if (!userId || merchantTokens.length === 0) return null;
 
-  /**
-   * Rule-based categorization using keywords
-   */
-  ruleBasedCategorization(description, merchantName, amount) {
-    const text = `${description} ${merchantName}`.toLowerCase();
-    
-    // Check each category's keywords
-    for (const [category, keywords] of Object.entries(this.categoryKeywords)) {
-      const matchCount = keywords.filter(keyword => text.includes(keyword)).length;
-      if (matchCount > 0) {
-        const confidence = Math.min(0.75 + (matchCount * 0.05), 0.9);
-        return {
-          category,
-          confidence,
-          method: 'rules',
-        };
+    // Check in-memory cache first
+    for (const token of merchantTokens) {
+      const key = `${userId}:${token}`;
+      const cached = this.merchantPatterns.get(key);
+      if (cached) {
+        // Check if amount is in similar range (±30%)
+        if (!cached.amount || this.isAmountSimilar(amount, cached.amount)) {
+          return { category: cached.category, matchedToken: token };
+        }
       }
     }
 
-    // Amount-based heuristics
-    if (amount < 0) {  // Income
-      return { category: 'Revenue', confidence: 0.6, method: 'rules' };
+    // Query database for learned patterns
+    try {
+      const { CategoryLearning } = require('../models');
+      const { Op } = require('sequelize');
+      
+      const learned = await CategoryLearning.findOne({
+        where: { 
+          userId, 
+          merchantToken: { [Op.in]: merchantTokens } 
+        },
+        order: [['correctedAt', 'DESC']]
+      });
+
+      if (learned) {
+        // Check amount similarity if amount is stored
+        if (!learned.amount || this.isAmountSimilar(amount, parseFloat(learned.amount))) {
+          // Cache for future lookups
+          const key = `${userId}:${learned.merchantToken}`;
+          this.merchantPatterns.set(key, { 
+            category: learned.category, 
+            amount: learned.amount 
+          });
+          
+          return { 
+            category: learned.category, 
+            matchedToken: learned.merchantToken 
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error querying learned patterns:', error);
+    }
+    
+    return null;
+  }
+
+  isAmountSimilar(amount1, amount2, tolerance = 0.3) {
+    const diff = Math.abs(amount1 - amount2);
+    const avg = (Math.abs(amount1) + Math.abs(amount2)) / 2;
+    return diff / avg <= tolerance;
+  }
+
+  /**
+   * Learn pattern for future categorizations (in-memory + DB)
+   */
+  learnPattern(merchantToken, category, amount, userId) {
+    if (!merchantToken || !userId) return;
+    
+    const key = `${userId}:${merchantToken.toLowerCase()}`;
+    this.merchantPatterns.set(key, { category, amount });
+    
+    // TODO: Persist to database
+    console.log(`Learned pattern: ${merchantToken} -> ${category} (amount: ${amount})`);
+  }
+
+  /**
+   * Enhanced Rule-Based Categorization with Indian merchant knowledge
+   */
+  ruleBasedCategorization(narration, merchantTokens, amount, transactionType) {
+    let bestMatch = { category: 'Other', confidence: 0.4, method: 'rule_based' };
+    const text = `${narration} ${merchantTokens.join(' ')}`.toLowerCase();
+
+    // Step 1: Check merchant mappings (highest confidence)
+    for (const [category, merchants] of Object.entries(this.merchantMappings)) {
+      for (const merchant of merchants) {
+        if (merchantTokens.some(token => token.includes(merchant) || merchant.includes(token))) {
+          return { category, confidence: 0.92, method: 'rule_based', matchedMerchant: merchant };
+        }
+      }
     }
 
-    return { category: 'Other', confidence: 0.4, method: 'rules' };
+    // Step 2: Check keyword patterns
+    let maxMatches = 0;
+    let matchedCategory = null;
+    
+    for (const [category, keywords] of Object.entries(this.categoryKeywords)) {
+      const matchCount = keywords.filter(keyword => text.includes(keyword)).length;
+      if (matchCount > maxMatches) {
+        maxMatches = matchCount;
+        matchedCategory = category;
+      }
+    }
+
+    if (maxMatches > 0) {
+      const confidence = Math.min(0.80 + (maxMatches * 0.03), 0.90);
+      bestMatch = { category: matchedCategory, confidence, method: 'rule_based' };
+    }
+
+    // Step 3: Amount & frequency heuristics for ambiguous cases
+    if (bestMatch.confidence < 0.85) {
+      // Large one-time debits (₹30k-₹2L) without clear keywords -> likely Inventory/Operations
+      if (amount >= 30000 && amount <= 200000 && transactionType === 'expense') {
+        if (!text.match(/food|travel|rent|salary/)) {
+          bestMatch = { category: 'Inventory', confidence: 0.75, method: 'rule_based' };
+        }
+      }
+
+      // Credits from payment gateways or customers -> Revenue
+      if (transactionType === 'income' || amount < 0) {
+        if (text.match(/payout|settlement|razorpay|stripe|cashfree|customer/)) {
+          bestMatch = { category: 'Revenue', confidence: 0.88, method: 'rule_based' };
+        }
+      }
+
+      // Monthly recurring patterns (detected by amount similarity in future iterations)
+      // Rent: ₹20k-₹1L monthly
+      // Utilities: ₹500-₹5k monthly
+      // Payroll: ₹15k+ monthly
+    }
+
+    return bestMatch;
   }
 
   /**
@@ -210,38 +385,57 @@ Confidence: [0.XX]`;
   }
 
   /**
-   * Categorize using Hugging Face
+   * Categorize using Hugging Face (AI Fallback)
    */
-  async categorizeWithHuggingFace(description, merchantName, amount) {
-    const prompt = `Categorize this business transaction into one of these categories: ${this.categories.join(', ')}.
+  async categorizeWithHuggingFace(description, merchantTokens, amount) {
+    const prompt = `You are a financial categorization expert. Categorize this Indian business transaction into EXACTLY ONE of these 14 categories: ${this.categories.join(', ')}.
 
-Transaction: "${description}"
-Merchant: "${merchantName}"
-Amount: ${amount}
+Transaction Details:
+- Description: "${description}"
+- Merchant/Tokens: "${merchantTokens}"
+- Amount: ₹${Math.abs(amount)}
 
-Respond with only the category name.`;
+Rules:
+- Food delivery (Zomato, Swiggy) = Meals & Entertainment
+- IT equipment (Lenovo, Dell, HP) = Inventory
+- Ads (Google, Meta, Facebook) = Marketing
+- Travel (Uber, Ola, flights) = Travel
+- Telecom/Internet (Jio, Airtel) = Utilities
+- Salary/wages = Payroll
+- Rent/lease = Rent
+- Insurance premiums = Insurance
+- Tax/TDS/GST = Taxes
+- Office items (stationery, printer) = Office Supplies
+- Consulting/legal/CA = Professional Services
+- Customer payments/settlements = Revenue
+
+Respond with ONLY the category name, nothing else.`;
 
     const response = await this.hf.textGeneration({
       model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
       inputs: prompt,
       parameters: {
-        max_new_tokens: 20,
-        temperature: 0.3,
+        max_new_tokens: 30,
+        temperature: 0.2,
         return_full_text: false,
       },
     });
 
-    const category = response.generated_text.trim();
+    let category = response.generated_text.trim().split('\n')[0].trim();
+    
+    // Clean up response (remove any extra text)
+    category = category.replace(/^(Category:|Answer:|Response:)/i, '').trim();
     
     // Validate category
     const matchedCategory = this.categories.find(c => 
-      category.toLowerCase().includes(c.toLowerCase())
+      category.toLowerCase().includes(c.toLowerCase()) || 
+      c.toLowerCase().includes(category.toLowerCase())
     );
 
     return {
       category: matchedCategory || 'Other',
-      confidence: matchedCategory ? 0.85 : 0.5,
-      method: 'huggingface',
+      confidence: matchedCategory ? 0.78 : 0.50,
+      method: 'ai_fallback',
     };
   }
 
@@ -278,19 +472,129 @@ Respond with only the category name.`;
   }
 
   /**
-   * Learn from user corrections
+   * Learn from user corrections (stores in DB for persistence)
    */
-  async learnFromCorrection(transactionId, oldCategory, newCategory, merchantName, userId) {
-    // Update learned patterns
-    this.learnPattern(merchantName, newCategory, userId);
+  async learnFromCorrection(transactionId, transaction, newCategory, userId) {
+    try {
+      const { description, merchantName, amount } = transaction;
+      
+      // Parse to get merchant tokens
+      const parsedData = this.parseIndianPaymentNarration(
+        description || '', 
+        merchantName || ''
+      );
+      
+      // Persist to database
+      const { CategoryLearning } = require('../models');
+      const learnedTokens = [];
+      
+      for (const token of parsedData.merchantTokens) {
+        if (token.length > 3) {
+          // Update in-memory cache
+          this.learnPattern(token, newCategory, amount, userId);
+          
+          // Persist to database (upsert to handle duplicates)
+          await CategoryLearning.upsert({
+            userId,
+            transactionId,
+            merchantToken: token.toLowerCase(),
+            category: newCategory,
+            amount,
+            correctedAt: new Date()
+          });
+          
+          learnedTokens.push(token);
+        }
+      }
 
-    // TODO: Store in database for persistent learning
-    console.log(`Learned: ${merchantName} -> ${newCategory} (was ${oldCategory})`);
+      console.log(`✓ Learned correction: ${learnedTokens.join(', ')} -> ${newCategory}`);
 
-    return {
-      success: true,
-      message: 'Pattern learned successfully',
-    };
+      return {
+        success: true,
+        message: 'Pattern learned successfully',
+        learnedTokens
+      };
+    } catch (error) {
+      console.error('Learn from correction error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Load learned patterns from database on startup
+   */
+  async loadLearnedPatterns(userId = null) {
+    try {
+      const { CategoryLearning } = require('../models');
+      const where = userId ? { userId } : {};
+      
+      const patterns = await CategoryLearning.findAll({
+        where,
+        order: [['correctedAt', 'DESC']]
+      });
+      
+      patterns.forEach(p => {
+        const key = `${p.userId}:${p.merchantToken}`;
+        this.merchantPatterns.set(key, { 
+          category: p.category, 
+          amount: p.amount ? parseFloat(p.amount) : null 
+        });
+      });
+      
+      console.log(`✓ Loaded ${patterns.length} learned patterns from database`);
+      return patterns.length;
+    } catch (error) {
+      console.error('Error loading learned patterns:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get learned patterns for a specific user
+   */
+  async getUserLearnedPatterns(userId) {
+    try {
+      const { CategoryLearning } = require('../models');
+      
+      const patterns = await CategoryLearning.findAll({
+        where: { userId },
+        order: [['correctedAt', 'DESC']],
+        limit: 100
+      });
+
+      return patterns.map(p => ({
+        merchantToken: p.merchantToken,
+        category: p.category,
+        amount: p.amount,
+        correctedAt: p.correctedAt
+      }));
+    } catch (error) {
+      console.error('Error fetching user patterns:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete a learned pattern
+   */
+  async deleteLearnedPattern(userId, merchantToken) {
+    try {
+      const { CategoryLearning } = require('../models');
+      
+      await CategoryLearning.destroy({
+        where: { userId, merchantToken: merchantToken.toLowerCase() }
+      });
+
+      // Remove from cache
+      const key = `${userId}:${merchantToken.toLowerCase()}`;
+      this.merchantPatterns.delete(key);
+
+      console.log(`✓ Deleted learned pattern: ${merchantToken}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting learned pattern:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**
