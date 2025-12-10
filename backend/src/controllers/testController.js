@@ -3,8 +3,7 @@
  */
 
 const { Transaction, Account } = require('../models');
-const aiCategorizationService = require('../services/aiCategorizationService');
-const aiService = require('../services/aiService');
+const aiService = require('../services/aiCategorizationService');
 
 // Dummy transaction data
 const dummyTransactions = [
@@ -286,11 +285,12 @@ exports.testForecasting = async (req, res) => {
       });
     }
 
-    // Generate forecast
+    // Generate forecast with ML enhancement
     const forecasts = await aiService.generateForecast(
       transactions,
       parseFloat(account.balance),
-      days
+      days,
+      true // Enable ML
     );
 
     // Calculate summary statistics
@@ -423,6 +423,70 @@ exports.clearTestData = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to clear test data',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get AI service statistics including API key status
+ */
+exports.getAIStats = async (req, res) => {
+  try {
+    const stats = aiService.getStats();
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error getting AI stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get AI statistics',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Reset API key statistics and failed status
+ */
+exports.resetAPIKeys = async (req, res) => {
+  try {
+    const result = aiService.resetApiKeyStats();
+    
+    res.json({
+      success: true,
+      message: result.message,
+      data: aiService.getStats()
+    });
+  } catch (error) {
+    console.error('Error resetting API keys:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset API keys',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get API quota usage
+ */
+exports.getQuotaUsage = async (req, res) => {
+  try {
+    const quotaUsage = aiService.getQuotaUsage();
+    
+    res.json({
+      success: true,
+      data: quotaUsage
+    });
+  } catch (error) {
+    console.error('Error getting quota usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get quota usage',
       message: error.message
     });
   }

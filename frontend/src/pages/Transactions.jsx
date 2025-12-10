@@ -50,6 +50,20 @@ function Transactions() {
     }
   }
 
+  const handleBulkRecategorize = async () => {
+    try {
+      toast.loading('Recategorizing all transactions with new AI...')
+      const response = await api.post('/transactions/bulk-recategorize', {})
+      toast.dismiss()
+      toast.success(`✓ ${response.data.updated} transactions recategorized!`)
+      dispatch(fetchTransactions({ limit: 100 }))
+    } catch (err) {
+      toast.dismiss()
+      toast.error('Failed to recategorize transactions')
+      console.error(err)
+    }
+  }
+
   console.log('Transactions state:', { transactions, loading, error })
 
   const getCategoryIcon = (category) => {
@@ -119,6 +133,25 @@ function Transactions() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={handleBulkRecategorize}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                background: '#10b981',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              <TrendingUp size={16} />
+              Recategorize All
+            </button>
             <button 
               onClick={() => setShowNeedsReview(!showNeedsReview)}
               style={{
@@ -252,7 +285,8 @@ function Transactions() {
                                 border: '1px solid rgba(255, 255, 255, 0.1)',
                                 borderRadius: '6px',
                                 color: '#d1d5db',
-                                fontSize: '12px'
+                                fontSize: '12px',
+                                cursor: 'pointer'
                               }}
                             >
                               <option value="">Select...</option>
@@ -267,7 +301,7 @@ function Transactions() {
                                 }
                               }}
                               style={{
-                                padding: '6px',
+                                padding: '6px 8px',
                                 background: '#10b981',
                                 border: 'none',
                                 borderRadius: '4px',
@@ -275,13 +309,14 @@ function Transactions() {
                                 display: 'flex',
                                 alignItems: 'center'
                               }}
+                              title="Save"
                             >
                               <Check size={14} color="#fff" />
                             </button>
                             <button
                               onClick={() => setEditingCategory(null)}
                               style={{
-                                padding: '6px',
+                                padding: '6px 8px',
                                 background: '#ef4444',
                                 border: 'none',
                                 borderRadius: '4px',
@@ -289,6 +324,7 @@ function Transactions() {
                                 display: 'flex',
                                 alignItems: 'center'
                               }}
+                              title="Cancel"
                             >
                               <X size={14} color="#fff" />
                             </button>
@@ -300,15 +336,26 @@ function Transactions() {
                               setSelectedCategory(txn.aiCategory || txn.category)
                             }}
                             style={{
-                              padding: '4px 12px',
+                              padding: '6px 12px',
                               borderRadius: '6px',
                               fontSize: '12px',
                               background: `${categoryInfo.color}20`,
                               color: categoryInfo.color,
                               fontWeight: '500',
                               cursor: 'pointer',
-                              display: 'inline-block'
+                              display: 'inline-block',
+                              border: '1px solid transparent',
+                              transition: 'all 0.2s'
                             }}
+                            onMouseEnter={(e) => {
+                              e.target.style.border = `1px solid ${categoryInfo.color}`
+                              e.target.style.background = `${categoryInfo.color}30`
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.border = '1px solid transparent'
+                              e.target.style.background = `${categoryInfo.color}20`
+                            }}
+                            title="Click to edit category"
                           >
                             {txn.aiCategory || txn.category}
                           </span>

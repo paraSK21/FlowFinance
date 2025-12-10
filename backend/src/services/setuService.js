@@ -1,7 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { Account, Transaction } = require('../models');
-const aiService = require('./aiService');
+const aiService = require('./aiCategorizationService');
 
 class SetuService {
   constructor() {

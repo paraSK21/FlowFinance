@@ -104,4 +104,8 @@ router.use('/reports', reportRoutes);
 const testRoutes = require('./test');
 router.use('/test', testRoutes);
 
+// Mock data routes (for development with sample data)
+const mockDataRoutes = require('./mockData');
+router.use('/mock', mockDataRoutes);
+
 module.exports = router;

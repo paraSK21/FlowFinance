@@ -25,4 +25,13 @@ router.get('/stats', testController.getTestStats);
 // Clear test data
 router.delete('/clear', testController.clearTestData);
 
+// Get AI service statistics (including API key status)
+router.get('/ai-stats', testController.getAIStats);
+
+// Reset API key statistics
+router.post('/reset-api-keys', testController.resetAPIKeys);
+
+// Get API quota usage
+router.get('/quota-usage', testController.getQuotaUsage);
+
 module.exports = router;

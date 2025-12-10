@@ -1,6 +1,6 @@
 const { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } = require('plaid');
 const { Account, Transaction } = require('../models');
-const aiService = require('./aiService');
+const aiService = require('./aiCategorizationService');
 
 class PlaidService {
   constructor() {

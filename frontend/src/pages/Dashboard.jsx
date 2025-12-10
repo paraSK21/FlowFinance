@@ -9,46 +9,105 @@ import api from '../services/api'
 
 function Dashboard() {
   const dispatch = useDispatch()
+  const { accounts } = useSelector(state => state.accounts)
+  const { transactions: recentTransactions } = useSelector(state => state.transactions)
 
   const [stats, setStats] = useState({
-    bankBalance: 15250,
-    invoicesDue: 4500,
+    bankBalance: 0,
+    totalIncome: 0,
+    totalExpenses: 0,
+    invoicesDue: 0,
     availableFinancing: 10000,
-    lowStockItems: 3,
-    taxDeductions: 320
+    lowStockItems: 0,
+    taxDeductions: 0
   })
+
+  const [forecastData, setForecastData] = useState([])
 
   useEffect(() => {
     dispatch(fetchAccounts())
     dispatch(fetchTransactions({ limit: 100 }))
-    dispatch(generateForecast())
     loadDashboardStats()
   }, [dispatch])
 
+  useEffect(() => {
+    if (accounts && accounts.length > 0) {
+      const balance = accounts.reduce((sum, acc) => sum + parseFloat(acc.currentBalance || 0), 0)
+      setStats(prev => ({ ...prev, bankBalance: balance }))
+    }
+  }, [accounts])
+
+  useEffect(() => {
+    if (recentTransactions && recentTransactions.length > 0) {
+      const income = recentTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+      
+      const expenses = recentTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+      
+      setStats(prev => ({ ...prev, totalIncome: income, totalExpenses: expenses }))
+    }
+  }, [recentTransactions])
+
   const loadDashboardStats = async () => {
     try {
-      const accounts = await api.get('/accounts')
-      const balance = accounts.data.reduce((sum, acc) => sum + parseFloat(acc.currentBalance || 0), 0)
-      if (balance > 0) {
-        setStats(prev => ({ ...prev, bankBalance: balance }))
-      }
+      const [invoicesRes, inventoryRes, taxRes] = await Promise.all([
+        api.get('/invoices/stats/summary').catch(() => ({ data: { totalDue: 0 } })),
+        api.get('/inventory/low-stock').catch(() => ({ data: [] })),
+        api.get('/tax/summary').catch(() => ({ data: { potentialDeductions: 0 } }))
+      ])
+
+      setStats(prev => ({
+        ...prev,
+        invoicesDue: invoicesRes.data.totalDue || 0,
+        lowStockItems: inventoryRes.data.length || 0,
+        taxDeductions: taxRes.data.potentialDeductions || 0
+      }))
+
+      // Generate simple forecast
+      const currentBalance = stats.bankBalance || 0
+      const avgIncome = stats.totalIncome / 30 || 100
+      const avgExpenses = stats.totalExpenses / 30 || 80
+      const dailyNet = avgIncome - avgExpenses
+
+      setForecastData([
+        { day: 'Today', balance: currentBalance },
+        { day: 'Day 30', balance: currentBalance + (dailyNet * 30) },
+        { day: '60', balance: currentBalance + (dailyNet * 60) },
+        { day: '90', balance: currentBalance + (dailyNet * 90) }
+      ])
     } catch (error) {
       console.error('Load stats error:', error)
     }
   }
 
-  const forecastData = [
-    { day: 'Today', balance: 15000 },
-    { day: 'Day 30', balance: 20500 },
-    { day: '60', balance: 22800 },
-    { day: '90', balance: 26500 }
-  ]
+  const getCategoryIcon = (category) => {
+    const icons = {
+      'Revenue': { icon: CreditCard, color: '#10b981' },
+      'Meals & Entertainment': { icon: Coffee, color: '#f59e0b' },
+      'Operations': { icon: ShoppingBag, color: '#3b82f6' },
+      'Marketing': { icon: ShoppingBag, color: '#ec4899' },
+      'Utilities': { icon: ShoppingBag, color: '#8b5cf6' },
+      'Travel': { icon: ShoppingBag, color: '#06b6d4' },
+      'Other': { icon: ShoppingBag, color: '#6b7280' }
+    }
+    return icons[category] || icons['Other']
+  }
 
-  const transactions = [
-    { id: 1, name: 'Coffee Shop', subtitle: 'Meals & Entertainment', category: 'Meals &', amount: 15.25, icon: Coffee, color: '#f59e0b' },
-    { id: 2, name: 'Office Supplies Co.', subtitle: 'Operations', category: 'Operations', amount: 10.00, icon: ShoppingBag, color: '#3b82f6' },
-    { id: 3, name: 'Client Payment', subtitle: 'Revenue', category: 'Revenue', amount: 10.00, icon: CreditCard, color: '#10b981' }
-  ]
+  const displayTransactions = (recentTransactions || []).slice(0, 5).map(txn => {
+    const categoryInfo = getCategoryIcon(txn.aiCategory || txn.category)
+    return {
+      id: txn.id,
+      name: txn.description || txn.merchantName,
+      subtitle: txn.aiCategory || txn.category,
+      category: txn.aiCategory || txn.category,
+      amount: parseFloat(txn.amount || 0),
+      icon: categoryInfo.icon,
+      color: categoryInfo.color
+    }
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f1419', padding: '24px' }}>
@@ -172,7 +231,12 @@ function Dashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {transactions.map((txn) => (
+                {displayTransactions.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                    <p>No transactions yet. Connect mock data to see transactions here.</p>
+                  </div>
+                ) : (
+                  displayTransactions.map((txn) => (
                   <div key={txn.id} style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -213,7 +277,8 @@ function Dashboard() {
                       </span>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

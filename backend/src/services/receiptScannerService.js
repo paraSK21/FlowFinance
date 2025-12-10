@@ -1,6 +1,6 @@
 const Tesseract = require('tesseract.js');
 const sharp = require('sharp');
-const aiService = require('./aiService');
+const aiService = require('./aiCategorizationService');
 
 class ReceiptScannerService {
   async scanReceipt(imageBuffer) {

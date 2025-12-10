@@ -3,7 +3,7 @@
 // ====================
 const { TaxDeduction, Transaction } = require('../models');
 const { Op } = require('sequelize');
-const aiService = require('../services/aiService');
+const aiService = require('../services/aiCategorizationService');
 
 exports.scanDeductions = async (req, res) => {
   try {
