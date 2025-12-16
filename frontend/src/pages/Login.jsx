@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { login } from '../store/slices/authSlice'
 import toast from 'react-hot-toast'
 
@@ -35,8 +36,32 @@ function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       background: '#0f1419',
-      padding: '24px'
+      padding: '24px',
+      position: 'relative'
     }}>
+      {/* Back to Home */}
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#9ca3af',
+          textDecoration: 'none',
+          fontSize: '14px',
+          fontWeight: '500',
+          transition: 'color 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+      >
+        <ArrowLeft size={16} />
+        Back to Home
+      </Link>
+
       <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -55,14 +80,14 @@ function Login() {
           </div>
           <h1 style={{
             fontSize: '28px',
-            fontWeight: '600',
+            fontWeight: '700',
             color: '#ffffff',
             margin: '0 0 8px 0'
           }}>
-            Welcome to FlowFinance
+            Welcome Back
           </h1>
           <p style={{ fontSize: '14px', color: '#9ca3af', margin: 0 }}>
-            AI-powered cash flow management for your business
+            Sign in to continue to FlowFinance
           </p>
         </div>
 

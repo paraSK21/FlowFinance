@@ -23,11 +23,13 @@ function Dashboard() {
   })
 
   const [forecastData, setForecastData] = useState([])
+  const [forecastLoading, setForecastLoading] = useState(false)
 
   useEffect(() => {
     dispatch(fetchAccounts())
     dispatch(fetchTransactions({ limit: 100 }))
     loadDashboardStats()
+    loadForecast()
   }, [dispatch])
 
   useEffect(() => {
@@ -65,8 +67,46 @@ function Dashboard() {
         lowStockItems: inventoryRes.data.length || 0,
         taxDeductions: taxRes.data.potentialDeductions || 0
       }))
+    } catch (error) {
+      console.error('Load stats error:', error)
+    }
+  }
 
-      // Generate simple forecast
+  const loadForecast = async () => {
+    try {
+      setForecastLoading(true)
+      // Use AI-powered forecast API with ML enhancement
+      const response = await api.post('/forecasts/generate', { days: 90, useML: true })
+      
+      if (response.data && response.data.forecastData) {
+        // Transform forecast data for chart (sample every 10 days for cleaner visualization)
+        const chartData = []
+        const forecastArray = response.data.forecastData
+        
+        // Add current balance as starting point
+        chartData.push({
+          day: 'Today',
+          balance: Math.round(response.data.currentBalance || 0)
+        })
+        
+        // Sample data points at intervals for better chart readability
+        const intervals = [9, 19, 29, 44, 59, 74, 89] // Days 10, 20, 30, 45, 60, 75, 90
+        intervals.forEach(index => {
+          if (forecastArray[index]) {
+            const dayNum = index + 1
+            chartData.push({
+              day: dayNum === 30 || dayNum === 60 || dayNum === 90 ? `Day ${dayNum}` : `${dayNum}`,
+              balance: Math.round(forecastArray[index].predictedBalance || 0)
+            })
+          }
+        })
+        
+        setForecastData(chartData)
+        console.log('✓ AI forecast loaded:', response.data.summary)
+      }
+    } catch (error) {
+      console.error('Load forecast error:', error)
+      // Fallback to simple linear forecast if API fails
       const currentBalance = stats.bankBalance || 0
       const avgIncome = stats.totalIncome / 30 || 100
       const avgExpenses = stats.totalExpenses / 30 || 80
@@ -78,8 +118,8 @@ function Dashboard() {
         { day: '60', balance: currentBalance + (dailyNet * 60) },
         { day: '90', balance: currentBalance + (dailyNet * 90) }
       ])
-    } catch (error) {
-      console.error('Load stats error:', error)
+    } finally {
+      setForecastLoading(false)
     }
   }
 
@@ -142,7 +182,21 @@ function Dashboard() {
                 </div>
               </div>
 
-              <ResponsiveContainer width="100%" height={220}>
+              {forecastLoading ? (
+                <div style={{ 
+                  height: '220px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: '#6b7280'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>🤖 AI analyzing transaction patterns...</div>
+                    <div style={{ fontSize: '12px' }}>Generating ML-enhanced forecast</div>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={forecastData}>
                   <defs>
                     <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
@@ -182,6 +236,7 @@ function Dashboard() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
 
               {/* Stats Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '20px' }}>

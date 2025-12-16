@@ -2,6 +2,8 @@ import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import Layout from './components/Layout'
+import LoadingScreen from './components/LoadingScreen'
+import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Onboarding from './pages/Onboarding'
@@ -16,6 +18,7 @@ import Tax from './pages/Tax'
 import Reports from './pages/Reports'
 import Expenses from './pages/Expenses'
 import Settings from './pages/Settings'
+import NotFound from './pages/NotFound'
 import { loadUser } from './store/slices/authSlice'
 
 function App() {
@@ -29,11 +32,7 @@ function App() {
   }, [token, dispatch])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    )
+    return <LoadingScreen message="Loading FlowFinance..." />
   }
 
   // Check if onboarding is complete
@@ -41,13 +40,17 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
-      <Route path="/register" element={!token ? <Register /> : <Navigate to="/" />} />
+      {/* Public Routes */}
+      <Route path="/" element={!token ? <Home /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={!token ? <Login /> : <Navigate to="/dashboard" />} />
+      <Route path="/register" element={!token ? <Register /> : <Navigate to="/dashboard" />} />
+      
+      {/* Onboarding */}
       <Route path="/onboarding" element={token ? <Onboarding /> : <Navigate to="/login" />} />
       
+      {/* Protected Routes */}
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" />}>
-        <Route index element={onboardingComplete ? <Dashboard /> : <Navigate to="/onboarding" />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={onboardingComplete ? <Dashboard /> : <Navigate to="/onboarding" />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="invoices" element={<Invoices />} />
@@ -59,6 +62,9 @@ function App() {
         <Route path="expenses" element={<Expenses />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+      
+      {/* 404 Page */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

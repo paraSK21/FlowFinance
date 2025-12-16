@@ -37,12 +37,24 @@ export default function Onboarding() {
   const syncTransactions = async () => {
     setSyncing(true);
     try {
-      await api.post('/api/accounts/sync');
-      alert('Transactions synced successfully! AI is categorizing them now...');
-      setStep(3);
+      const response = await api.post('/api/accounts/sync');
+      const { synced, errors } = response.data;
+      
+      if (synced > 0) {
+        alert(`Successfully synced ${synced} transactions! AI is categorizing them now...`);
+        setStep(3);
+      } else if (errors && errors.length > 0) {
+        console.error('Sync errors:', errors);
+        alert(`Warning: Some accounts failed to sync. ${synced} transactions synced.`);
+        setStep(3); // Still proceed to next step
+      } else {
+        alert('No new transactions to sync.');
+        setStep(3);
+      }
     } catch (error) {
       console.error('Error syncing transactions:', error);
-      alert('Error syncing transactions. Please try again.');
+      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
+      alert(`Error syncing transactions: ${errorMsg}\n\nYou can skip this step and sync later from the Accounts page.`);
     } finally {
       setSyncing(false);
     }

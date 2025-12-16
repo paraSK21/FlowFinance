@@ -1,96 +1,173 @@
 const { Op } = require('sequelize');
-const Invoice = require('../models/Invoice');
-const User = require('../models/User');
+const { Invoice, InvoiceReminder, User } = require('../models');
 const emailService = require('../services/emailService');
 
 /**
- * Send automated invoice reminders
- * Runs daily at 9 AM
+ * Process scheduled invoice reminders
+ * Runs every hour to check for due reminders
  */
 async function sendInvoiceReminders() {
   console.log('Starting invoice reminder job...');
   
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
-    // Find invoices that need reminders
-    const invoices = await Invoice.findAll({
+    // Find reminders that are due to be sent
+    const dueReminders = await InvoiceReminder.findAll({
       where: {
-        status: {
-          [Op.in]: ['sent', 'overdue'],
-        },
-        autoChaseEnabled: true,
-        dueDate: {
-          [Op.lte]: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), // Due within 7 days
-        },
+        status: 'pending',
+        scheduledDate: {
+          [Op.lte]: now
+        }
       },
       include: [
         {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'businessName', 'email'],
-        },
-      ],
+          model: Invoice,
+          include: [
+            {
+              model: User,
+              attributes: ['id', 'firstName', 'lastName', 'businessName', 'email']
+            }
+          ]
+        }
+      ]
     });
 
-    console.log(`Found ${invoices.length} invoices needing reminders`);
+    console.log(`Found ${dueReminders.length} reminders to send`);
 
     let sentCount = 0;
     let errorCount = 0;
 
-    for (const invoice of invoices) {
+    for (const reminder of dueReminders) {
       try {
-        const dueDate = new Date(invoice.dueDate);
-        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-        const daysOverdue = daysUntilDue < 0 ? Math.abs(daysUntilDue) : 0;
+        const invoice = reminder.Invoice;
 
-        // Determine if we should send a reminder
-        let shouldSend = false;
-        
-        if (daysOverdue > 0) {
-          // Overdue: send reminder every 3 days
-          const daysSinceLastChase = invoice.lastChaseDate
-            ? Math.ceil((today - new Date(invoice.lastChaseDate)) / (1000 * 60 * 60 * 24))
-            : 999;
-          
-          shouldSend = daysSinceLastChase >= 3;
-        } else if (daysUntilDue === 3 || daysUntilDue === 1) {
-          // Send reminder 3 days before and 1 day before due date
-          shouldSend = true;
-        } else if (daysUntilDue === 0) {
-          // Send reminder on due date
-          shouldSend = true;
+        // Skip if invoice is already paid or cancelled
+        if (invoice.status === 'paid' || invoice.status === 'cancelled') {
+          await reminder.update({ status: 'cancelled' });
+          continue;
         }
 
-        if (shouldSend && invoice.clientEmail) {
-          await emailService.sendInvoiceReminder(invoice, invoice.user, daysOverdue);
-          
-          await invoice.update({
-            lastChaseDate: new Date(),
-            chaseCount: (invoice.chaseCount || 0) + 1,
-            status: daysOverdue > 0 ? 'overdue' : invoice.status,
+        // Skip if no client email
+        if (!invoice.clientEmail) {
+          await reminder.update({ 
+            status: 'failed',
+            errorMessage: 'No client email address'
           });
-
-          console.log(`Sent reminder for invoice ${invoice.invoiceNumber}`);
-          sentCount++;
+          continue;
         }
+
+        // Calculate days overdue
+        const dueDate = new Date(invoice.dueDate);
+        const daysOverdue = Math.max(0, Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24)));
+
+        // Send reminder email
+        await emailService.sendInvoiceReminder(invoice, invoice.User, daysOverdue);
+
+        // Update reminder status
+        await reminder.update({
+          status: 'sent',
+          sentAt: new Date()
+        });
+
+        // Update invoice
+        await invoice.update({
+          lastChaseDate: new Date(),
+          chaseCount: (invoice.chaseCount || 0) + 1,
+          status: daysOverdue > 0 ? 'overdue' : invoice.status
+        });
+
+        console.log(`Sent ${reminder.reminderType} reminder for invoice ${invoice.invoiceNumber}`);
+        sentCount++;
+
       } catch (error) {
-        console.error(`Failed to send reminder for invoice ${invoice.id}:`, error.message);
+        console.error(`Failed to send reminder ${reminder.id}:`, error.message);
+        
+        await reminder.update({
+          status: 'failed',
+          errorMessage: error.message
+        });
+        
         errorCount++;
       }
     }
+
+    // Schedule overdue reminders (every 3 days for overdue invoices)
+    await scheduleOverdueReminders();
 
     console.log(`Invoice reminders completed: ${sentCount} sent, ${errorCount} errors`);
     
     return {
       success: true,
       sent: sentCount,
-      errors: errorCount,
+      errors: errorCount
     };
   } catch (error) {
     console.error('Invoice reminder job error:', error);
     throw error;
+  }
+}
+
+/**
+ * Schedule reminders for overdue invoices (every 3 days)
+ */
+async function scheduleOverdueReminders() {
+  try {
+    const now = new Date();
+    
+    // Find overdue invoices
+    const overdueInvoices = await Invoice.findAll({
+      where: {
+        status: 'overdue',
+        autoChaseEnabled: true,
+        dueDate: {
+          [Op.lt]: now
+        }
+      }
+    });
+
+    for (const invoice of overdueInvoices) {
+      // Check if there's already a pending overdue reminder
+      const existingReminder = await InvoiceReminder.findOne({
+        where: {
+          invoiceId: invoice.id,
+          reminderType: 'overdue',
+          status: 'pending'
+        }
+      });
+
+      if (!existingReminder) {
+        // Check when last reminder was sent
+        const lastReminder = await InvoiceReminder.findOne({
+          where: {
+            invoiceId: invoice.id,
+            status: 'sent'
+          },
+          order: [['sentAt', 'DESC']]
+        });
+
+        const daysSinceLastReminder = lastReminder
+          ? Math.ceil((now - new Date(lastReminder.sentAt)) / (1000 * 60 * 60 * 24))
+          : 999;
+
+        // Schedule next overdue reminder if 3 days have passed
+        if (daysSinceLastReminder >= 3) {
+          const nextReminderDate = new Date();
+          nextReminderDate.setHours(9, 0, 0, 0);
+
+          await InvoiceReminder.create({
+            invoiceId: invoice.id,
+            reminderType: 'overdue',
+            scheduledDate: nextReminderDate,
+            status: 'pending'
+          });
+
+          console.log(`Scheduled overdue reminder for invoice ${invoice.invoiceNumber}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error scheduling overdue reminders:', error);
   }
 }
 

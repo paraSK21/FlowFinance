@@ -50,6 +50,7 @@ router.post('/invoices', authenticate, invoiceController.createInvoice);
 router.get('/invoices', authenticate, invoiceController.getInvoices);
 router.get('/invoices/stats/summary', authenticate, invoiceController.getInvoiceStats);
 router.get('/invoices/:id', authenticate, invoiceController.getInvoices);
+router.get('/invoices/:id/reminders', authenticate, invoiceController.getInvoiceReminders);
 router.put('/invoices/:id', authenticate, invoiceController.updateInvoice);
 router.post('/invoices/:id/mark-paid', authenticate, invoiceController.markAsPaid);
 router.post('/invoices/:id/chase', authenticate, invoiceController.chaseInvoice);
@@ -92,10 +93,6 @@ router.get('/forecasts', authenticate, forecastController.getForecasts);
 const plaidRoutes = require('./plaid');
 router.use('/plaid', plaidRoutes);
 
-// Setu routes (Indian banks)
-const setuRoutes = require('./setu');
-router.use('/setu', setuRoutes);
-
 // Report routes
 const reportRoutes = require('./reports');
 router.use('/reports', reportRoutes);
@@ -103,9 +100,5 @@ router.use('/reports', reportRoutes);
 // Test routes (for testing dashboard)
 const testRoutes = require('./test');
 router.use('/test', testRoutes);
-
-// Mock data routes (for development with sample data)
-const mockDataRoutes = require('./mockData');
-router.use('/mock', mockDataRoutes);
 
 module.exports = router;

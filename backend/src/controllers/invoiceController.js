@@ -1,9 +1,11 @@
 // ====================
 // backend/src/controllers/invoiceController.js
 // ====================
-const { Invoice } = require('../models');
+const { Invoice, User } = require('../models');
 const { Op } = require('sequelize');
 const notificationService = require('../services/notificationService');
+const emailService = require('../services/emailService');
+const reminderScheduler = require('../services/reminderScheduler');
 
 exports.createInvoice = async (req, res) => {
   try {
@@ -43,10 +45,14 @@ exports.createInvoice = async (req, res) => {
       autoChaseEnabled: autoChaseEnabled !== false
     });
 
-    // Send initial invoice notification
+    // Send initial invoice email
     if (clientEmail) {
-      await notificationService.sendInvoiceEmail(invoice);
+      const user = await User.findByPk(req.userId);
+      await emailService.sendInvoiceCreated(invoice, user);
     }
+
+    // Schedule automatic reminders
+    await reminderScheduler.scheduleRemindersForInvoice(invoice);
 
     res.status(201).json(invoice);
   } catch (error) {
@@ -95,7 +101,17 @@ exports.updateInvoice = async (req, res) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    // Check if due date changed
+    const dueDateChanged = updates.dueDate && 
+      new Date(updates.dueDate).getTime() !== new Date(invoice.dueDate).getTime();
+
     await invoice.update(updates);
+
+    // Reschedule reminders if due date changed
+    if (dueDateChanged && invoice.status !== 'paid' && invoice.status !== 'cancelled') {
+      await reminderScheduler.rescheduleRemindersForInvoice(invoice);
+    }
+
     res.json(invoice);
   } catch (error) {
     console.error('Update invoice error:', error);
@@ -121,6 +137,15 @@ exports.markAsPaid = async (req, res) => {
       paidAmount: paidAmount || invoice.amount,
       paidDate: paidDate || new Date()
     });
+
+    // Cancel all pending reminders
+    await reminderScheduler.cancelRemindersForInvoice(invoice.id);
+
+    // Send payment confirmation email
+    if (invoice.clientEmail) {
+      const user = await User.findByPk(req.userId);
+      await emailService.sendPaymentConfirmation(invoice, user);
+    }
 
     res.json(invoice);
   } catch (error) {
@@ -191,5 +216,30 @@ exports.getInvoiceStats = async (req, res) => {
   } catch (error) {
     console.error('Get invoice stats error:', error);
     res.status(500).json({ error: 'Failed to fetch invoice stats' });
+  }
+};
+
+exports.getInvoiceReminders = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { InvoiceReminder } = require('../models');
+
+    const invoice = await Invoice.findOne({
+      where: { id, userId: req.userId }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const reminders = await InvoiceReminder.findAll({
+      where: { invoiceId: id },
+      order: [['scheduledDate', 'ASC']]
+    });
+
+    res.json(reminders);
+  } catch (error) {
+    console.error('Get invoice reminders error:', error);
+    res.status(500).json({ error: 'Failed to fetch reminders' });
   }
 };

@@ -189,12 +189,19 @@ class PlaidService {
           });
           savedTransactions.push(existing);
         } else {
-          // AI categorize the transaction
-          const aiResult = await aiService.categorizeTransaction(
-            txn.name,
-            txn.merchant_name || '',
-            txn.amount
-          );
+          // AI categorize the transaction (with fallback)
+          let aiResult = { category: 'Other', confidence: 0.5 };
+          try {
+            aiResult = await aiService.categorizeTransaction(
+              txn.name,
+              txn.merchant_name || '',
+              txn.amount,
+              userId,
+              txn.amount > 0 ? 'expense' : 'income'
+            );
+          } catch (aiError) {
+            console.log('AI categorization failed, using fallback:', aiError.message);
+          }
 
           // Create new transaction
           const newTransaction = await Transaction.create({

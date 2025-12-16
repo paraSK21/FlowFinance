@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { register } from '../store/slices/authSlice'
 import toast from 'react-hot-toast'
 
@@ -53,8 +54,32 @@ function Register() {
       alignItems: 'center',
       justifyContent: 'center',
       background: '#0f1419',
-      padding: '24px'
+      padding: '24px',
+      position: 'relative'
     }}>
+      {/* Back to Home */}
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#9ca3af',
+          textDecoration: 'none',
+          fontSize: '14px',
+          fontWeight: '500',
+          transition: 'color 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+      >
+        <ArrowLeft size={16} />
+        Back to Home
+      </Link>
+
       <div style={{ width: '100%', maxWidth: '480px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{

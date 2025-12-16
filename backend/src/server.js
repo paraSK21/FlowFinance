@@ -62,10 +62,6 @@ db.sequelize.sync({ alter: true }).then(async () => {
   const aiService = require('./services/aiCategorizationService');
   await aiService.loadLearnedPatterns();
   
-  // Initialize mock data service (loads JSON files)
-  const mockDataService = require('./services/mockDataService');
-  console.log('Mock data service initialized');
-  
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     

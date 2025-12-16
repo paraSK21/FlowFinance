@@ -23,8 +23,8 @@ class JobScheduler {
     });
     this.jobs.push({ name: 'Transaction Sync', schedule: 'Every 4 hours', job: syncJob });
 
-    // Send invoice reminders daily at 9 AM
-    const reminderJob = cron.schedule('0 9 * * *', async () => {
+    // Process invoice reminders every hour
+    const reminderJob = cron.schedule('0 * * * *', async () => {
       console.log('Running scheduled invoice reminders...');
       try {
         await sendInvoiceReminders();
@@ -32,7 +32,7 @@ class JobScheduler {
         console.error('Scheduled reminder error:', error);
       }
     });
-    this.jobs.push({ name: 'Invoice Reminders', schedule: 'Daily at 9 AM', job: reminderJob });
+    this.jobs.push({ name: 'Invoice Reminders', schedule: 'Every hour', job: reminderJob });
 
     // Send low stock alerts daily at 8 AM
     const lowStockJob = cron.schedule('0 8 * * *', async () => {
