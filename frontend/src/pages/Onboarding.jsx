@@ -226,7 +226,6 @@ export default function Onboarding() {
                   <li>💰 Create and send invoices</li>
                   <li>📈 Generate financial reports</li>
                   <li>💳 Track expenses</li>
-                  <li>📦 Manage inventory</li>
                 </ul>
               </div>
 

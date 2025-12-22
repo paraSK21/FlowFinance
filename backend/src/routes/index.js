@@ -10,7 +10,6 @@ const authController = require('../controllers/authController');
 const accountController = require('../controllers/accountController');
 const transactionController = require('../controllers/transactionController');
 const invoiceController = require('../controllers/invoiceController');
-const inventoryController = require('../controllers/inventoryController');
 const taxController = require('../controllers/taxController');
 const profitFirstController = require('../controllers/profitFirstController');
 const financingController = require('../controllers/financingController');
@@ -54,16 +53,7 @@ router.get('/invoices/:id/reminders', authenticate, invoiceController.getInvoice
 router.put('/invoices/:id', authenticate, invoiceController.updateInvoice);
 router.post('/invoices/:id/mark-paid', authenticate, invoiceController.markAsPaid);
 router.post('/invoices/:id/chase', authenticate, invoiceController.chaseInvoice);
-
-// Inventory routes
-router.post('/inventory', authenticate, inventoryController.createItem);
-router.get('/inventory', authenticate, inventoryController.getItems);
-router.get('/inventory/low-stock', authenticate, inventoryController.getLowStockItems);
-router.get('/inventory/stats', authenticate, inventoryController.getInventoryStats);
-router.get('/inventory/:id', authenticate, inventoryController.getItems);
-router.put('/inventory/:id', authenticate, inventoryController.updateItem);
-router.post('/inventory/:id/adjust', authenticate, inventoryController.adjustStock);
-router.delete('/inventory/:id', authenticate, inventoryController.deleteItem);
+router.delete('/invoices/:id', authenticate, invoiceController.deleteInvoice);
 
 // Tax routes
 router.get('/tax/scan', authenticate, taxController.scanDeductions);

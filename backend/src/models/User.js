@@ -42,9 +42,8 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSONB,
       defaultValue: {
         profit: 10,
-        ownerPay: 50,
         tax: 15,
-        opex: 25
+        opex: 75
       }
     },
     notificationPreferences: {
@@ -69,7 +68,6 @@ module.exports = (sequelize, DataTypes) => {
     User.hasMany(models.Transaction, { foreignKey: 'userId', as: 'transactions' });
     User.hasMany(models.Invoice, { foreignKey: 'userId', as: 'invoices' });
     User.hasMany(models.Forecast, { foreignKey: 'userId', as: 'forecasts' });
-    User.hasMany(models.InventoryItem, { foreignKey: 'userId', as: 'inventory' });
   };
 
   return User;

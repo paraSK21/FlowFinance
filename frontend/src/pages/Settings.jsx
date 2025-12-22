@@ -55,18 +55,31 @@ function Settings() {
   const handleUpdateProfitFirst = async (e) => {
     e.preventDefault()
     
-    const total = Object.values(profitFirst.settings || {}).reduce((sum, val) => sum + parseFloat(val || 0), 0)
+    // Calculate total using only the 3 accounts we want
+    const total = parseFloat(profitFirst.settings?.profit || 0) + parseFloat(profitFirst.settings?.tax || 0) + parseFloat(profitFirst.settings?.opex || 0)
     if (total !== 100) {
       toast.error('Percentages must add up to 100%')
       return
     }
 
+    // Remove any old ownerPay field before saving
+    const cleanSettings = {
+      profit: parseFloat(profitFirst.settings?.profit || 10),
+      tax: parseFloat(profitFirst.settings?.tax || 15),
+      opex: parseFloat(profitFirst.settings?.opex || 75)
+    }
+
     try {
       const token = localStorage.getItem('token')
-      await axios.put('http://localhost:5000/api/profit-first/settings', profitFirst, {
+      await axios.put('http://localhost:5000/api/profit-first/settings', {
+        ...profitFirst,
+        settings: cleanSettings
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       })
       toast.success('Profit First settings updated!')
+      // Refresh to get clean data
+      fetchProfitFirst()
     } catch (error) {
       toast.error('Failed to update settings')
     }
@@ -285,22 +298,6 @@ function Settings() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
-                      Owner Pay %
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={profitFirst.settings?.ownerPay || 50}
-                      onChange={(e) => setProfitFirst({
-                        ...profitFirst,
-                        settings: { ...profitFirst.settings, ownerPay: parseFloat(e.target.value) }
-                      })}
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
                       Tax %
                     </label>
                     <input
@@ -315,15 +312,15 @@ function Settings() {
                       style={inputStyle}
                     />
                   </div>
-                  <div>
+                  <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
-                      Operating Expenses %
+                      Operating Expenses % (includes owner compensation)
                     </label>
                     <input
                       type="number"
                       min="0"
                       max="100"
-                      value={profitFirst.settings?.opex || 25}
+                      value={profitFirst.settings?.opex || 75}
                       onChange={(e) => setProfitFirst({
                         ...profitFirst,
                         settings: { ...profitFirst.settings, opex: parseFloat(e.target.value) }
@@ -339,8 +336,8 @@ function Settings() {
                   fontSize: '13px',
                   color: '#9ca3af'
                 }}>
-                  Total: {Object.values(profitFirst.settings || {}).reduce((sum, val) => sum + parseFloat(val || 0), 0)}%
-                  {Object.values(profitFirst.settings || {}).reduce((sum, val) => sum + parseFloat(val || 0), 0) !== 100 && (
+                  Total: {(parseFloat(profitFirst.settings?.profit || 0) + parseFloat(profitFirst.settings?.tax || 0) + parseFloat(profitFirst.settings?.opex || 0))}%
+                  {(parseFloat(profitFirst.settings?.profit || 0) + parseFloat(profitFirst.settings?.tax || 0) + parseFloat(profitFirst.settings?.opex || 0)) !== 100 && (
                     <span style={{ color: '#ef4444', marginLeft: '8px' }}>(Must equal 100%)</span>
                   )}
                 </div>

@@ -16,7 +16,7 @@ function Transactions() {
   const categories = [
     'Revenue', 'Meals & Entertainment', 'Operations', 'Marketing',
     'Utilities', 'Travel', 'Professional Services', 'Payroll',
-    'Rent', 'Insurance', 'Taxes', 'Inventory', 'Office Supplies', 'Other'
+    'Rent', 'Insurance', 'Taxes', 'Office Supplies', 'Other'
   ]
 
   useEffect(() => {
@@ -79,7 +79,6 @@ function Transactions() {
       'Rent': { icon: ShoppingBag, color: '#84cc16' },
       'Insurance': { icon: ShoppingBag, color: '#a855f7' },
       'Taxes': { icon: ShoppingBag, color: '#ef4444' },
-      'Inventory': { icon: ShoppingBag, color: '#3b82f6' },
       'Office Supplies': { icon: ShoppingBag, color: '#64748b' },
       'Other': { icon: TrendingUp, color: '#6b7280' }
     }

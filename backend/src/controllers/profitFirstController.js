@@ -65,7 +65,6 @@ exports.calculateSplits = async (req, res) => {
 
     const splits = {
       profit: (totalAmount * settings.profit) / 100,
-      ownerPay: (totalAmount * settings.ownerPay) / 100,
       tax: (totalAmount * settings.tax) / 100,
       opex: (totalAmount * settings.opex) / 100
     };
@@ -98,7 +97,6 @@ exports.getAccountBalances = async (req, res) => {
     const settings = user.profitFirstSettings;
     const allocation = {
       profit: (totalBalance * settings.profit) / 100,
-      ownerPay: (totalBalance * settings.ownerPay) / 100,
       tax: (totalBalance * settings.tax) / 100,
       opex: (totalBalance * settings.opex) / 100
     };
@@ -135,7 +133,6 @@ exports.simulateSplit = async (req, res) => {
 
     const projectedSplits = {
       profit: (totalIncome * settings.profit) / 100,
-      ownerPay: (totalIncome * settings.ownerPay) / 100,
       tax: (totalIncome * settings.tax) / 100,
       opex: (totalIncome * settings.opex) / 100
     };

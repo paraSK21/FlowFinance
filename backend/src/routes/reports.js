@@ -15,7 +15,6 @@ router.get('/profit-loss', reportController.getProfitLoss);
 router.get('/cash-flow', reportController.getCashFlow);
 router.get('/sales', reportController.getSales);
 router.get('/expenses', reportController.getExpenses);
-router.get('/inventory', reportController.getInventory);
 router.get('/tax-summary', reportController.getTaxSummary);
 router.get('/dashboard', reportController.getDashboardSummary);
 

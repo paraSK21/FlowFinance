@@ -3,7 +3,7 @@
  * Provides comprehensive financial analytics and reporting
  */
 
-const { Transaction, Invoice, Account, InventoryItem } = require('../models');
+const { Transaction, Invoice, Account } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -257,61 +257,7 @@ class ReportService {
     }
   }
 
-  /**
-   * Generate Inventory Report
-   */
-  async generateInventoryReport(userId) {
-    try {
-      const items = await InventoryItem.findAll({
-        where: { userId }
-      });
 
-      const totalValue = items.reduce((sum, item) => 
-        sum + (parseFloat(item.unitPrice) * item.quantity), 0
-      );
-
-      const lowStockItems = items.filter(item => 
-        item.quantity <= item.reorderPoint
-      );
-
-      const outOfStockItems = items.filter(item => item.quantity === 0);
-
-      const byCategory = {};
-      items.forEach(item => {
-        const category = item.category || 'Uncategorized';
-        if (!byCategory[category]) {
-          byCategory[category] = { count: 0, value: 0, quantity: 0 };
-        }
-        byCategory[category].count++;
-        byCategory[category].value += parseFloat(item.unitPrice) * item.quantity;
-        byCategory[category].quantity += item.quantity;
-      });
-
-      return {
-        totalItems: items.length,
-        totalValue,
-        totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
-        lowStockItems: lowStockItems.length,
-        outOfStockItems: outOfStockItems.length,
-        byCategory,
-        averageItemValue: totalValue / items.length || 0,
-        alerts: {
-          lowStock: lowStockItems.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            reorderPoint: item.reorderPoint
-          })),
-          outOfStock: outOfStockItems.map(item => ({
-            name: item.name,
-            sku: item.sku
-          }))
-        }
-      };
-    } catch (error) {
-      console.error('Error generating inventory report:', error);
-      throw error;
-    }
-  }
 
   /**
    * Generate Tax Summary Report

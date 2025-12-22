@@ -44,14 +44,39 @@ class EmailService {
   async sendWithSendGrid(to, subject, html, text) {
     const msg = {
       to,
-      from: process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+        name: process.env.SENDGRID_FROM_NAME || 'FlowFinance'
+      },
       subject,
       text: text || this.stripHtml(html),
       html,
     };
 
-    await sgMail.send(msg);
-    return { success: true };
+    try {
+      const result = await sgMail.send(msg);
+      console.log(`✓ Email sent successfully to ${to}: ${subject}`);
+      console.log('SendGrid Response:', result[0].statusCode);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ SendGrid error:', error.response?.body || error.message);
+      
+      // If sender not verified (403), log helpful message
+      if (error.code === 403 || error.response?.statusCode === 403) {
+        console.error('⚠️  SendGrid sender verification required!');
+        console.error('   Visit: https://app.sendgrid.com/settings/sender_auth/senders');
+        console.error(`   Verify: ${process.env.SENDGRID_FROM_EMAIL}`);
+        console.error('   OR use Single Sender Verification at: https://app.sendgrid.com/settings/sender_auth/senders/new');
+      }
+      
+      // Log full error details for debugging
+      if (error.response?.body?.errors) {
+        console.error('SendGrid Error Details:', JSON.stringify(error.response.body.errors, null, 2));
+      }
+      
+      // Throw error so it's visible in logs
+      throw new Error(`Email failed: ${error.message}`);
+    }
   }
 
   async sendWithSMTP(to, subject, html, text) {
@@ -348,7 +373,6 @@ class EmailService {
             <ul>
               <li>Connect your bank account for automatic transaction sync</li>
               <li>Create your first invoice with payment links</li>
-              <li>Set up inventory tracking</li>
               <li>Enable Profit First for automatic savings</li>
               <li>Scan for tax deductions</li>
             </ul>

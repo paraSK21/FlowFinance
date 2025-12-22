@@ -1,4 +1,4 @@
-const { Invoice, InventoryItem, User } = require('../models');
+const { Invoice, User } = require('../models');
 const { Op } = require('sequelize');
 const notificationService = require('./notificationService');
 
@@ -44,54 +44,6 @@ async function autoChaseInvoices() {
   }
 }
 
-// Check low stock and send alerts
-async function checkLowStock() {
-  try {
-    console.log('Running low stock check...');
-    
-    const items = await InventoryItem.findAll({
-      where: { isActive: true }
-    });
-
-    const lowStockItems = items.filter(item => 
-      item.quantity <= item.lowStockThreshold
-    );
-
-    // Group by user
-    const userItems = {};
-    for (const item of lowStockItems) {
-      if (!userItems[item.userId]) {
-        userItems[item.userId] = [];
-      }
-      userItems[item.userId].push(item);
-    }
-
-    // Send alerts per user
-    for (const [userId, items] of Object.entries(userItems)) {
-      const user = await User.findByPk(userId);
-      
-      const message = `Low Stock Alert: ${items.length} item(s) need restocking:\n${
-        items.map(i => `- ${i.name} (${i.quantity} left)`).join('\n')
-      }`;
-
-      if (user.notificationPreferences.sms && user.phone) {
-        await notificationService.sendSMS(user.phone, message);
-      }
-
-      if (user.notificationPreferences.whatsapp && user.phone) {
-        await notificationService.sendWhatsApp(user.phone, message);
-      }
-
-      console.log(`Low stock alert sent to user ${userId}`);
-    }
-
-    console.log(`Low stock check completed: ${lowStockItems.length} items low`);
-  } catch (error) {
-    console.error('Low stock check error:', error);
-  }
-}
-
 module.exports = {
-  autoChaseInvoices,
-  checkLowStock
+  autoChaseInvoices
 };

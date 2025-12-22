@@ -56,9 +56,6 @@ const dummyTransactions = [
   // Taxes
   { description: 'Quarterly tax payment', merchantName: 'IRS', amount: 3500.00, type: 'expense', date: new Date('2024-11-15') },
   
-  // Inventory
-  { description: 'Product inventory purchase', merchantName: 'Wholesale Supplier', amount: 5000.00, type: 'expense', date: new Date('2024-11-05') },
-  
   // Other
   { description: 'Miscellaneous expense', merchantName: 'Unknown Vendor', amount: 75.00, type: 'expense', date: new Date('2024-11-19') },
   { description: 'Bank fee', merchantName: 'Chase Bank', amount: 15.00, type: 'expense', date: new Date('2024-11-20') }

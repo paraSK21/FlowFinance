@@ -78,21 +78,6 @@ class SocketService {
       this.emit('invoice:paid', data);
     });
 
-    // Inventory events
-    this.socket.on('inventory:updated', (data) => {
-      console.log('Inventory updated:', data);
-      this.emit('inventory:updated', data);
-    });
-
-    this.socket.on('inventory:low-stock', (data) => {
-      console.log('Low stock alert:', data);
-      toast.error(`Low stock: ${data.data.name}`, {
-        icon: '⚠️',
-        duration: 5000,
-      });
-      this.emit('inventory:low-stock', data);
-    });
-
     // Balance updates
     this.socket.on('balance:updated', (data) => {
       console.log('Balance updated:', data);

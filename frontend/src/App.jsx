@@ -12,7 +12,6 @@ import Accounts from './pages/Accounts'
 import Transactions from './pages/Transactions'
 import Invoices from './pages/Invoices'
 import CashFlow from './pages/CashFlow'
-import Inventory from './pages/Inventory'
 import Financing from './pages/Financing'
 import Tax from './pages/Tax'
 import Reports from './pages/Reports'
@@ -55,7 +54,6 @@ function App() {
         <Route path="transactions" element={<Transactions />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="cash-flow" element={<CashFlow />} />
-        <Route path="inventory" element={<Inventory />} />
         <Route path="financing" element={<Financing />} />
         <Route path="tax" element={<Tax />} />
         <Route path="reports" element={<Reports />} />

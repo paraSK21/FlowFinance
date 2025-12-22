@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const { syncAllTransactions } = require('./syncTransactions');
 const { sendInvoiceReminders } = require('./invoiceReminders');
-const { sendLowStockAlerts } = require('./lowStockAlerts');
 const generateRecurringInvoices = require('./generateRecurringInvoices');
 
 class JobScheduler {
@@ -33,17 +32,6 @@ class JobScheduler {
       }
     });
     this.jobs.push({ name: 'Invoice Reminders', schedule: 'Every hour', job: reminderJob });
-
-    // Send low stock alerts daily at 8 AM
-    const lowStockJob = cron.schedule('0 8 * * *', async () => {
-      console.log('Running scheduled low stock alerts...');
-      try {
-        await sendLowStockAlerts();
-      } catch (error) {
-        console.error('Scheduled low stock alert error:', error);
-      }
-    });
-    this.jobs.push({ name: 'Low Stock Alerts', schedule: 'Daily at 8 AM', job: lowStockJob });
 
     // Generate recurring invoices daily at 6 AM
     const recurringJob = cron.schedule('0 6 * * *', async () => {
@@ -80,11 +68,6 @@ class JobScheduler {
   async runRemindersNow() {
     console.log('Manually triggering invoice reminders...');
     return await sendInvoiceReminders();
-  }
-
-  async runLowStockAlertsNow() {
-    console.log('Manually triggering low stock alerts...');
-    return await sendLowStockAlerts();
   }
 
   async runRecurringInvoicesNow() {

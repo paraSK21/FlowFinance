@@ -14,7 +14,6 @@ function Layout() {
     { path: '/invoices', label: 'Invoices' },
     { path: '/expenses', label: 'Expenses' },
     { path: '/reports', label: 'Reports' },
-    { path: '/inventory', label: 'Inventory' },
     { path: '/tax', label: 'Tax' }
   ]
 

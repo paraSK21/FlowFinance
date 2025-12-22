@@ -131,22 +131,7 @@ class SocketService {
     });
   }
 
-  // Inventory events
-  emitInventoryUpdated(userId, item) {
-    this.emitToUser(userId, 'inventory:updated', {
-      type: 'inventory:updated',
-      data: item,
-      timestamp: new Date(),
-    });
-  }
 
-  emitLowStockAlert(userId, item) {
-    this.emitToUser(userId, 'inventory:low-stock', {
-      type: 'inventory:low-stock',
-      data: item,
-      timestamp: new Date(),
-    });
-  }
 
   // Notification events
   emitNotification(userId, notification) {

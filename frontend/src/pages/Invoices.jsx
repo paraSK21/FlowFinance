@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FileText, Plus, Send, DollarSign, CheckCircle, AlertCircle } from 'lucide-react'
+import { FileText, Plus, Send, DollarSign, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -64,6 +64,24 @@ function Invoices() {
       fetchStats()
     } catch (error) {
       toast.error('Failed to mark as paid')
+    }
+  }
+
+  const handleDeleteInvoice = async (id, invoiceNumber) => {
+    if (!window.confirm(`Are you sure you want to delete invoice ${invoiceNumber}? This action cannot be undone.`)) {
+      return
+    }
+    
+    try {
+      const token = localStorage.getItem('token')
+      await axios.delete(`http://localhost:5000/api/invoices/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      toast.success('Invoice deleted successfully!')
+      fetchInvoices()
+      fetchStats()
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete invoice')
     }
   }
 
@@ -167,38 +185,59 @@ function Invoices() {
                     }}>
                       {invoice.status}
                     </span>
-                    {invoice.status !== 'paid' && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {invoice.status !== 'paid' ? (
+                        <>
+                          <button
+                            onClick={() => handleChaseInvoice(invoice.id)}
+                            style={{
+                              padding: '8px 12px',
+                              background: '#f59e0b',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#ffffff',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Send size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleMarkPaid(invoice.id)}
+                            style={{
+                              padding: '8px 12px',
+                              background: '#10b981',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#ffffff',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Mark Paid
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleChaseInvoice(invoice.id)}
+                          onClick={() => handleDeleteInvoice(invoice.id, invoice.invoiceNumber)}
                           style={{
                             padding: '8px 12px',
-                            background: '#f59e0b',
+                            background: '#ef4444',
                             border: 'none',
                             borderRadius: '6px',
                             color: '#ffffff',
                             fontSize: '12px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}
                         >
-                          <Send size={14} />
+                          <Trash2 size={14} />
+                          Delete
                         </button>
-                        <button
-                          onClick={() => handleMarkPaid(invoice.id)}
-                          style={{
-                            padding: '8px 12px',
-                            background: '#10b981',
-                            border: 'none',
-                            borderRadius: '6px',
-                            color: '#ffffff',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Mark Paid
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -244,7 +283,6 @@ function CreateInvoiceModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     clientName: '',
     clientEmail: '',
-    clientPhone: '',
     amount: '',
     dueDate: '',
     description: '',
@@ -311,13 +349,6 @@ function CreateInvoiceModal({ onClose, onSuccess }) {
             placeholder="Client Email"
             value={formData.clientEmail}
             onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-            style={inputStyle}
-          />
-          <input
-            type="tel"
-            placeholder="Client Phone"
-            value={formData.clientPhone}
-            onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
             style={inputStyle}
           />
           <input

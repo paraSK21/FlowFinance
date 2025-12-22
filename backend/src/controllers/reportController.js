@@ -109,18 +109,7 @@ class ReportController {
     }
   }
 
-  /**
-   * Get Inventory Report
-   */
-  async getInventory(req, res) {
-    try {
-      const report = await reportService.generateInventoryReport(req.userId);
-      res.json(report);
-    } catch (error) {
-      console.error('Error getting inventory report:', error);
-      res.status(500).json({ error: 'Failed to generate report' });
-    }
-  }
+
 
   /**
    * Get Tax Summary

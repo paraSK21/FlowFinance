@@ -53,7 +53,6 @@ class AICategorizationService {
       'Rent',
       'Insurance',
       'Taxes',
-      'Inventory',
       'Office Supplies',
       'Other'
     ];
@@ -170,7 +169,6 @@ class AICategorizationService {
       'Insurance': ['insurance', 'premium', 'policy', 'lic', 'hdfc life', 'icici lombard', 'bajaj allianz',
                     'star health', 'max life', 'sbi life'],
       'Taxes': ['tax', 'tds', 'tds payment', 'advance tax', 'gst payment', 'gst', 'income tax', 'itr'],
-      'Inventory': ['supplier', 'vendor', 'wholesale', 'stock purchase', 'raw material', 'goods', 'amazon'],
       'Office Supplies': ['notebook', 'stationery', 'printer ink', 'pens', 'office chair', 'desk', 'paper',
                           'stapler', 'file', 'folder']
     };
@@ -178,9 +176,6 @@ class AICategorizationService {
 
   buildMerchantMappings() {
     return {
-      // IT/Electronics Equipment -> Inventory or Operations
-      'Inventory': ['lenovo', 'dell', 'hp', 'croma', 'reliance digital', 'asus', 'acer', 'apple store',
-                    'samsung', 'lg', 'sony', 'flipkart', 'amazon india', 'amazon'],
       // Food Delivery & Dining
       'Meals & Entertainment': ['zomato', 'swiggy', 'dominos', 'pizza hut', 'starbucks', 'mcdonald',
                                 'kfc', 'subway', 'burger king', 'dunkin donuts', 'cafeteria', 'iitb', 'canteen', 'cafe'],
@@ -464,10 +459,10 @@ class AICategorizationService {
 
     // Step 3: Amount & frequency heuristics for ambiguous cases
     if (bestMatch.confidence < 0.85) {
-      // Large one-time debits (₹30k-₹2L) without clear keywords -> likely Inventory/Operations
+      // Large one-time debits (₹30k-₹2L) without clear keywords -> likely Operations
       if (amount >= 30000 && amount <= 200000 && transactionType === 'expense') {
         if (!text.match(/food|travel|rent|salary/)) {
-          bestMatch = { category: 'Inventory', confidence: 0.75, method: 'rule_based' };
+          bestMatch = { category: 'Operations', confidence: 0.75, method: 'rule_based' };
         }
       }
 
@@ -532,7 +527,7 @@ Indian Business Context Rules:
 - Zomato/Swiggy (food delivery) = Meals & Entertainment
 - Uber/Ola/Rapido (ride-sharing/cab) = Travel
 - Jio/Airtel/Vi (telecom) = Utilities
-- Amazon/Flipkart (e-commerce) = Inventory
+- Amazon/Flipkart (e-commerce) = Operations
 - Google Ads/Meta Ads = Marketing
 - Razorpay/Stripe/Cashfree (payment gateway settlements) = Revenue
 - Salary Credit/Salary Received/Transfer From (incoming money) = Revenue

@@ -18,7 +18,6 @@ function Dashboard() {
     totalExpenses: 0,
     invoicesDue: 0,
     availableFinancing: 10000,
-    lowStockItems: 0,
     taxDeductions: 0
   })
 
@@ -55,16 +54,14 @@ function Dashboard() {
 
   const loadDashboardStats = async () => {
     try {
-      const [invoicesRes, inventoryRes, taxRes] = await Promise.all([
+      const [invoicesRes, taxRes] = await Promise.all([
         api.get('/invoices/stats/summary').catch(() => ({ data: { totalDue: 0 } })),
-        api.get('/inventory/low-stock').catch(() => ({ data: [] })),
         api.get('/tax/summary').catch(() => ({ data: { potentialDeductions: 0 } }))
       ])
 
       setStats(prev => ({
         ...prev,
         invoicesDue: invoicesRes.data.totalDue || 0,
-        lowStockItems: inventoryRes.data.length || 0,
         taxDeductions: taxRes.data.potentialDeductions || 0
       }))
     } catch (error) {
@@ -358,9 +355,8 @@ function Dashboard() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <ProgressBar label="Profit Account" percentage={10} color="#a855f7" />
-                <ProgressBar label="Owner's Pay" percentage={50} color="#10b981" active />
                 <ProgressBar label="Tax" percentage={15} color="#3b82f6" />
-                <ProgressBar label="OpEx" percentage={25} color="#60a5fa" />
+                <ProgressBar label="OpEx (incl. owner pay)" percentage={75} color="#60a5fa" active />
               </div>
               <button style={{
                 marginTop: '12px',
@@ -373,36 +369,6 @@ function Dashboard() {
               }}>
                 Automatic splits to changes
               </button>
-            </div>
-
-            {/* Inventory Alert */}
-            <div style={{
-              background: '#1a1f2e',
-              borderRadius: '12px',
-              padding: '20px',
-              border: '1px solid rgba(255, 255, 255, 0.05)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#d1d5db', margin: 0 }}>
-                  Inventory Alert
-                </h3>
-                <button style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#3b82f6',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}>
-                  Manage
-                </button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <AlertTriangle size={18} color="#f59e0b" />
-                <span style={{ fontSize: '13px', color: '#f59e0b' }}>Low Stock:</span>
-              </div>
-              <p style={{ fontSize: '24px', fontWeight: '600', color: '#d1d5db', margin: 0 }}>
-                {stats.lowStockItems} items
-              </p>
             </div>
 
             {/* Tax Savings Scanner */}

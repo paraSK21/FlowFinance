@@ -1,4 +1,5 @@
 const { User } = require('../models');
+const emailService = require('./emailService');
 const twilio = require('twilio');
 
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
@@ -30,7 +31,7 @@ class NotificationService {
 
   async sendInvoiceEmail(invoice) {
     try {
-      const message = `Invoice ${invoice.invoiceNumber} for $${invoice.amount} has been sent. Due date: ${invoice.dueDate}.`;
+      const message = `Invoice ${invoice.invoiceNumber} for ${invoice.amount} has been sent. Due date: ${invoice.dueDate}.`;
       console.log('Invoice email sent:', message);
       // Integrate with SendGrid or similar service
     } catch (error) {
@@ -40,17 +41,25 @@ class NotificationService {
 
   async sendInvoiceChase(invoice) {
     try {
-      const message = `Reminder: Invoice ${invoice.invoiceNumber} for $${invoice.amount} is ${invoice.status}. Please process payment.`;
+      const user = await User.findByPk(invoice.userId);
       
+      // Calculate days overdue
+      const daysOverdue = Math.floor((new Date() - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24));
+      
+      // Send email reminder
       if (invoice.clientEmail) {
-        console.log('Chase email sent:', message);
+        await emailService.sendInvoiceReminder(invoice, user, daysOverdue);
+        console.log(`✓ Chase email sent to ${invoice.clientEmail} for invoice ${invoice.invoiceNumber}`);
       }
 
+      // Send SMS if phone number is available
       if (invoice.clientPhone && twilioClient) {
+        const message = `Reminder: Invoice ${invoice.invoiceNumber} for $${invoice.amount} is ${daysOverdue > 0 ? `${daysOverdue} days overdue` : 'due soon'}. Please process payment.`;
         await this.sendSMS(invoice.clientPhone, message);
       }
     } catch (error) {
       console.error('Send invoice chase error:', error);
+      throw error; // Re-throw so controller knows it failed
     }
   }
 

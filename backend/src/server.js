@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
 const db = require('./models');
 const routes = require('./routes');
-const { autoChaseInvoices, checkLowStock } = require('./services/cronService');
+const { autoChaseInvoices } = require('./services/cronService');
 
 const app = express();
 
@@ -38,9 +38,6 @@ app.use('/api', routes);
 // Cron jobs
 // Auto-chase overdue invoices daily at 9 AM
 cron.schedule('0 9 * * *', autoChaseInvoices);
-
-// Check low stock daily at 8 AM
-cron.schedule('0 8 * * *', checkLowStock);
 
 // Error handling
 app.use((err, req, res, next) => {
