@@ -17,7 +17,7 @@ export default function Onboarding() {
 
   const checkAccounts = async () => {
     try {
-      const response = await api.get('/api/accounts');
+      const response = await api.get('/accounts');
       setAccounts(response.data);
       if (response.data.length > 0) {
         setStep(2);
@@ -35,27 +35,36 @@ export default function Onboarding() {
   };
 
   const syncTransactions = async () => {
+    console.log('syncTransactions called, syncing state:', syncing);
+    if (syncing) {
+      console.log('Already syncing, ignoring duplicate call');
+      return;
+    }
+    
     setSyncing(true);
     try {
-      const response = await api.post('/api/accounts/sync');
+      console.log('Starting sync request...');
+      const response = await api.post('/accounts/sync');
+      console.log('Sync response:', response.data);
       const { synced, errors } = response.data;
       
       if (synced > 0) {
         alert(`Successfully synced ${synced} transactions! AI is categorizing them now...`);
-        setStep(3);
       } else if (errors && errors.length > 0) {
         console.error('Sync errors:', errors);
         alert(`Warning: Some accounts failed to sync. ${synced} transactions synced.`);
-        setStep(3); // Still proceed to next step
       } else {
         alert('No new transactions to sync.');
-        setStep(3);
       }
+      
+      // Go directly to dashboard after sync
+      finishOnboarding();
     } catch (error) {
       console.error('Error syncing transactions:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
       alert(`Error syncing transactions: ${errorMsg}\n\nYou can skip this step and sync later from the Accounts page.`);
     } finally {
+      console.log('Sync complete, setting syncing to false');
       setSyncing(false);
     }
   };

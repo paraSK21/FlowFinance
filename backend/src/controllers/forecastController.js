@@ -1,28 +1,9 @@
-const { Forecast, Transaction, Account } = require('../models');
-const { Op } = require('sequelize');
-const aiService = require('../services/aiCategorizationService');
+const { Forecast, Account } = require('../models');
+const improvedForecastService = require('../services/improvedForecastService');
 
 exports.generateForecast = async (req, res) => {
   try {
-    const { days = 90, useML = true } = req.body;
-
-    // Get historical transactions (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const transactions = await Transaction.findAll({
-      where: {
-        userId: req.userId,
-        date: { [Op.gte]: sixMonthsAgo }
-      },
-      order: [['date', 'ASC']]
-    });
-
-    if (transactions.length < 5) {
-      return res.status(400).json({ 
-        error: 'Insufficient transaction history. Need at least 5 transactions to generate forecast.' 
-      });
-    }
+    const { days = 90 } = req.body;
 
     // Get current balance
     const accounts = await Account.findAll({
@@ -33,18 +14,25 @@ exports.generateForecast = async (req, res) => {
       sum + parseFloat(acc.currentBalance || 0), 0
     );
 
-    // Generate forecast using AI/ML
-    const forecastData = await aiService.generateForecast(
-      transactions,
-      currentBalance,
-      parseInt(days),
-      useML
-    );
+    // Generate forecast using improved service
+    const result = await improvedForecastService.generateForecast(req.userId, parseInt(days));
+
+    // Calculate running balance
+    let runningBalance = currentBalance;
+    const forecastData = result.forecasts.map(forecast => {
+      runningBalance += forecast.netCashFlow;
+      return {
+        ...forecast,
+        predictedBalance: runningBalance
+      };
+    });
 
     // Calculate summary statistics
     const summary = {
-      method: forecastData[0]?.method || 'statistical',
-      mlEnhanced: forecastData[0]?.method === 'ml_enhanced',
+      method: 'statistical_improved',
+      confidence: result.confidence,
+      recurringTransactions: result.recurringTransactions.length,
+      dataPoints: result.analysis.dataPoints,
       averageConfidence: forecastData.reduce((sum, f) => sum + f.confidence, 0) / forecastData.length,
       projectedIncome: forecastData.reduce((sum, f) => sum + f.projectedIncome, 0),
       projectedExpenses: forecastData.reduce((sum, f) => sum + f.projectedExpenses, 0)
@@ -57,17 +45,26 @@ exports.generateForecast = async (req, res) => {
       endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
       forecastData,
       currentBalance,
-      projectedBalance: forecastData[forecastData.length - 1].predictedBalance,
+      projectedBalance: runningBalance,
       metadata: summary
     });
 
     res.json({
       ...forecast.toJSON(),
-      summary
+      summary,
+      recurringTransactions: result.recurringTransactions,
+      analysis: {
+        avgDailyIncome: result.analysis.avgDailyIncome,
+        avgDailyExpenses: result.analysis.avgDailyExpenses,
+        trend: result.analysis.trend
+      }
     });
   } catch (error) {
     console.error('Generate forecast error:', error);
-    res.status(500).json({ error: 'Failed to generate forecast', message: error.message });
+    res.status(500).json({ 
+      error: 'Failed to generate forecast', 
+      message: error.message 
+    });
   }
 };
 

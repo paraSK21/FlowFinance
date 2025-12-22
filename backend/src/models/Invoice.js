@@ -35,6 +35,28 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false
     },
+    subtotal: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true
+    },
+    taxRate: {
+      type: DataTypes.DECIMAL(5, 4),
+      allowNull: true,
+      defaultValue: 0
+    },
+    taxAmount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+      defaultValue: 0
+    },
+    taxType: {
+      type: DataTypes.ENUM('none', 'sales_tax', 'gst', 'hst', 'pst', 'qst', 'gst_pst', 'gst_qst'),
+      defaultValue: 'none'
+    },
+    taxJurisdiction: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     issueDate: {
       type: DataTypes.DATE,
       allowNull: false

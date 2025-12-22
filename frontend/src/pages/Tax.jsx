@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { FileText, Upload, Scan, Download, CheckCircle, XCircle } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 
 function Tax() {
@@ -17,9 +17,7 @@ function Tax() {
 
   const fetchDeductions = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/tax/deductions', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/tax/deductions', {
         params: { taxYear: selectedYear }
       })
       setDeductions(response.data)
@@ -32,9 +30,7 @@ function Tax() {
 
   const fetchSummary = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/tax/summary', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/tax/summary', {
         params: { taxYear: selectedYear }
       })
       setSummary(response.data)
@@ -46,9 +42,7 @@ function Tax() {
   const handleScanTransactions = async () => {
     setScanning(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/tax/scan', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/tax/scan', {
         params: { taxYear: selectedYear }
       })
       toast.success(`Found ${response.data.found} potential deductions!`)
@@ -69,10 +63,8 @@ function Tax() {
     formData.append('receipt', file)
 
     try {
-      const token = localStorage.getItem('token')
-      await axios.post('http://localhost:5000/api/tax/scan-receipt', formData, {
+      await api.post('/tax/scan-receipt', formData, {
         headers: { 
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       })
@@ -86,11 +78,7 @@ function Tax() {
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(`http://localhost:5000/api/tax/deductions/${id}`, 
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await api.put(`/tax/deductions/${id}`, { status })
       toast.success(`Deduction ${status}!`)
       fetchDeductions()
       fetchSummary()
@@ -101,9 +89,7 @@ function Tax() {
 
   const handleExport = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/tax/export', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/tax/export', {
         params: { taxYear: selectedYear }
       })
       

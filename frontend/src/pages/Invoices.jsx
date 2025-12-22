@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { FileText, Plus, Send, DollarSign, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 
 function Invoices() {
@@ -16,10 +16,7 @@ function Invoices() {
 
   const fetchInvoices = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/invoices', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/invoices')
       setInvoices(response.data)
     } catch (error) {
       console.error('Failed to fetch invoices')
@@ -30,10 +27,7 @@ function Invoices() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/invoices/stats/summary', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/invoices/stats/summary')
       setStats(response.data)
     } catch (error) {
       console.error('Failed to fetch stats')
@@ -42,10 +36,7 @@ function Invoices() {
 
   const handleChaseInvoice = async (id) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.post(`http://localhost:5000/api/invoices/${id}/chase`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.post(`/invoices/${id}/chase`)
       toast.success('Chase notification sent!')
       fetchInvoices()
     } catch (error) {
@@ -55,10 +46,7 @@ function Invoices() {
 
   const handleMarkPaid = async (id) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.post(`http://localhost:5000/api/invoices/${id}/mark-paid`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.post(`/invoices/${id}/mark-paid`)
       toast.success('Invoice marked as paid!')
       fetchInvoices()
       fetchStats()
@@ -73,10 +61,7 @@ function Invoices() {
     }
     
     try {
-      const token = localStorage.getItem('token')
-      await axios.delete(`http://localhost:5000/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.delete(`/invoices/${id}`)
       toast.success('Invoice deleted successfully!')
       fetchInvoices()
       fetchStats()
@@ -292,10 +277,7 @@ function CreateInvoiceModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const token = localStorage.getItem('token')
-      await axios.post('http://localhost:5000/api/invoices', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.post('/invoices', formData)
       toast.success('Invoice created successfully!')
       onSuccess()
     } catch (error) {

@@ -14,6 +14,8 @@ import Invoices from './pages/Invoices'
 import CashFlow from './pages/CashFlow'
 import Financing from './pages/Financing'
 import Tax from './pages/Tax'
+import TaxDeductions from './pages/TaxDeductions'
+import TaxSettings from './pages/TaxSettings'
 import Reports from './pages/Reports'
 import Expenses from './pages/Expenses'
 import Settings from './pages/Settings'
@@ -23,6 +25,9 @@ import { loadUser } from './store/slices/authSlice'
 function App() {
   const dispatch = useDispatch()
   const { token, loading } = useSelector(state => state.auth)
+  const [onboardingComplete, setOnboardingComplete] = React.useState(
+    localStorage.getItem('onboarding_complete')
+  )
 
   useEffect(() => {
     if (token) {
@@ -30,12 +35,31 @@ function App() {
     }
   }, [token, dispatch])
 
+  // Listen for storage changes to detect when onboarding is completed
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setOnboardingComplete(localStorage.getItem('onboarding_complete'))
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also check periodically in case storage event doesn't fire (same tab)
+    const interval = setInterval(() => {
+      const current = localStorage.getItem('onboarding_complete')
+      if (current !== onboardingComplete) {
+        setOnboardingComplete(current)
+      }
+    }, 100)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [onboardingComplete])
+
   if (loading) {
     return <LoadingScreen message="Loading FlowFinance..." />
   }
-
-  // Check if onboarding is complete
-  const onboardingComplete = localStorage.getItem('onboarding_complete')
 
   return (
     <Routes>
@@ -56,6 +80,8 @@ function App() {
         <Route path="cash-flow" element={<CashFlow />} />
         <Route path="financing" element={<Financing />} />
         <Route path="tax" element={<Tax />} />
+        <Route path="tax-deductions" element={<TaxDeductions />} />
+        <Route path="tax-settings" element={<TaxSettings />} />
         <Route path="reports" element={<Reports />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="settings" element={<Settings />} />

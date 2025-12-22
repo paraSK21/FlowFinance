@@ -6,6 +6,7 @@ import { fetchAccounts } from '../store/slices/accountSlice'
 import { fetchTransactions } from '../store/slices/transactionSlice'
 import { generateForecast } from '../store/slices/forecastSlice'
 import api from '../services/api'
+import toast from 'react-hot-toast'
 
 function Dashboard() {
   const dispatch = useDispatch()
@@ -55,25 +56,27 @@ function Dashboard() {
   const loadDashboardStats = async () => {
     try {
       const [invoicesRes, taxRes] = await Promise.all([
-        api.get('/invoices/stats/summary').catch(() => ({ data: { totalDue: 0 } })),
-        api.get('/tax/summary').catch(() => ({ data: { potentialDeductions: 0 } }))
+        api.get('/invoices/stats/summary'),
+        api.get('/tax/summary')
       ])
 
       setStats(prev => ({
         ...prev,
         invoicesDue: invoicesRes.data.totalDue || 0,
-        taxDeductions: taxRes.data.potentialDeductions || 0
+        taxDeductions: taxRes.data.totalDeductions || 0
       }))
     } catch (error) {
       console.error('Load stats error:', error)
+      // Don't fail silently - show user-friendly message
+      toast.error('Failed to load some dashboard statistics')
     }
   }
 
   const loadForecast = async () => {
     try {
       setForecastLoading(true)
-      // Use AI-powered forecast API with ML enhancement
-      const response = await api.post('/forecasts/generate', { days: 90, useML: true })
+      // Use improved forecast API (no ML to avoid quota issues)
+      const response = await api.post('/forecasts/generate', { days: 90 })
       
       if (response.data && response.data.forecastData) {
         // Transform forecast data for chart (sample every 10 days for cleaner visualization)
@@ -99,22 +102,15 @@ function Dashboard() {
         })
         
         setForecastData(chartData)
-        console.log('✓ AI forecast loaded:', response.data.summary)
+        console.log('✓ Forecast loaded:', response.data.summary || response.data.metadata)
+      } else {
+        throw new Error('Invalid forecast data structure')
       }
     } catch (error) {
       console.error('Load forecast error:', error)
-      // Fallback to simple linear forecast if API fails
-      const currentBalance = stats.bankBalance || 0
-      const avgIncome = stats.totalIncome / 30 || 100
-      const avgExpenses = stats.totalExpenses / 30 || 80
-      const dailyNet = avgIncome - avgExpenses
-
-      setForecastData([
-        { day: 'Today', balance: currentBalance },
-        { day: 'Day 30', balance: currentBalance + (dailyNet * 30) },
-        { day: '60', balance: currentBalance + (dailyNet * 60) },
-        { day: '90', balance: currentBalance + (dailyNet * 90) }
-      ])
+      toast.error('Failed to load forecast. Please ensure you have transaction history.')
+      // Show empty state instead of fake data
+      setForecastData([])
     } finally {
       setForecastLoading(false)
     }
@@ -285,7 +281,7 @@ function Dashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {displayTransactions.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                    <p>No transactions yet. Connect mock data to see transactions here.</p>
+                    <p>No transactions yet. Sync your bank accounts to see transactions here.</p>
                   </div>
                 ) : (
                   displayTransactions.map((txn) => (

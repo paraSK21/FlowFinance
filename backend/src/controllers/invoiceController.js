@@ -5,7 +5,7 @@ const { Invoice, User } = require('../models');
 const { Op } = require('sequelize');
 const notificationService = require('../services/notificationService');
 const emailService = require('../services/emailService');
-const reminderScheduler = require('../services/reminderScheduler');
+const taxCalculationService = require('../services/taxCalculationService');
 
 exports.createInvoice = async (req, res) => {
   try {
@@ -17,8 +17,17 @@ exports.createInvoice = async (req, res) => {
       dueDate, 
       description, 
       lineItems,
-      autoChaseEnabled 
+      autoChaseEnabled,
+      taxCountry,
+      taxState
     } = req.body;
+
+    // Validate required fields
+    if (!clientName || !amount || !dueDate) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: clientName, amount, dueDate' 
+      });
+    }
 
     // Generate invoice number
     const lastInvoice = await Invoice.findOne({
@@ -27,8 +36,30 @@ exports.createInvoice = async (req, res) => {
     });
 
     const invoiceNumber = lastInvoice 
-      ? `INV-${parseInt(lastInvoice.invoiceNumber.split('-')[1]) + 1}`
+      ? `INV-${String(parseInt(lastInvoice.invoiceNumber.split('-')[1]) + 1).padStart(4, '0')}`
       : 'INV-1001';
+
+    // Calculate tax if country and state provided
+    let subtotal = parseFloat(amount);
+    let taxAmount = 0;
+    let taxRate = 0;
+    let taxType = 'none';
+    let taxJurisdiction = null;
+    let total = subtotal;
+
+    if (taxCountry && taxState) {
+      const taxCalc = taxCalculationService.calculateInvoiceTax(
+        subtotal,
+        taxCountry,
+        taxState
+      );
+      
+      taxAmount = taxCalc.taxAmount;
+      taxRate = taxCalc.taxRate;
+      taxType = taxCalc.taxType;
+      taxJurisdiction = taxCalc.jurisdiction;
+      total = subtotal + taxAmount;
+    }
 
     const invoice = await Invoice.create({
       userId: req.userId,
@@ -36,7 +67,12 @@ exports.createInvoice = async (req, res) => {
       clientName,
       clientEmail,
       clientPhone,
-      amount,
+      amount: total,
+      subtotal,
+      taxAmount,
+      taxRate,
+      taxType,
+      taxJurisdiction,
       issueDate: new Date(),
       dueDate: new Date(dueDate),
       status: 'sent',
@@ -51,13 +87,13 @@ exports.createInvoice = async (req, res) => {
       await emailService.sendInvoiceCreated(invoice, user);
     }
 
-    // Schedule automatic reminders
-    await reminderScheduler.scheduleRemindersForInvoice(invoice);
-
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Create invoice error:', error);
-    res.status(500).json({ error: 'Failed to create invoice' });
+    res.status(500).json({ 
+      error: 'Failed to create invoice',
+      message: error.message 
+    });
   }
 };
 
@@ -107,11 +143,6 @@ exports.updateInvoice = async (req, res) => {
 
     await invoice.update(updates);
 
-    // Reschedule reminders if due date changed
-    if (dueDateChanged && invoice.status !== 'paid' && invoice.status !== 'cancelled') {
-      await reminderScheduler.rescheduleRemindersForInvoice(invoice);
-    }
-
     res.json(invoice);
   } catch (error) {
     console.error('Update invoice error:', error);
@@ -137,9 +168,6 @@ exports.markAsPaid = async (req, res) => {
       paidAmount: paidAmount || invoice.amount,
       paidDate: paidDate || new Date()
     });
-
-    // Cancel all pending reminders
-    await reminderScheduler.cancelRemindersForInvoice(invoice.id);
 
     // Send payment confirmation email
     if (invoice.clientEmail) {
@@ -222,7 +250,6 @@ exports.getInvoiceStats = async (req, res) => {
 exports.getInvoiceReminders = async (req, res) => {
   try {
     const { id } = req.params;
-    const { InvoiceReminder } = require('../models');
 
     const invoice = await Invoice.findOne({
       where: { id, userId: req.userId }
@@ -232,12 +259,13 @@ exports.getInvoiceReminders = async (req, res) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
-    const reminders = await InvoiceReminder.findAll({
-      where: { invoiceId: id },
-      order: [['scheduledDate', 'ASC']]
+    // Return invoice chase history instead of separate reminders
+    res.json({
+      invoiceId: id,
+      lastChaseDate: invoice.lastChaseDate,
+      chaseCount: invoice.chaseCount,
+      autoChaseEnabled: invoice.autoChaseEnabled
     });
-
-    res.json(reminders);
   } catch (error) {
     console.error('Get invoice reminders error:', error);
     res.status(500).json({ error: 'Failed to fetch reminders' });
@@ -247,7 +275,6 @@ exports.getInvoiceReminders = async (req, res) => {
 exports.deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const { InvoiceReminder } = require('../models');
 
     const invoice = await Invoice.findOne({
       where: { id, userId: req.userId }
@@ -264,15 +291,7 @@ exports.deleteInvoice = async (req, res) => {
       });
     }
 
-    // Delete all associated invoice reminders first
-    await InvoiceReminder.destroy({
-      where: { invoiceId: id }
-    });
-
-    // Cancel any pending reminders in scheduler
-    await reminderScheduler.cancelRemindersForInvoice(invoice.id);
-
-    // Now delete the invoice
+    // Delete the invoice
     await invoice.destroy();
 
     res.json({ message: 'Invoice deleted successfully' });

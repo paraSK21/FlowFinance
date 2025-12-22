@@ -30,7 +30,7 @@ export default function Accounts() {
   const syncAllAccounts = async () => {
     setSyncing(true);
     try {
-      const response = await api.post('/api/accounts/sync');
+      const response = await api.post('/accounts/sync');
       const { synced } = response.data;
       alert(`Successfully synced ${synced} transactions!`);
       fetchAccounts();

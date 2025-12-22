@@ -46,6 +46,24 @@ module.exports = (sequelize, DataTypes) => {
         opex: 75
       }
     },
+    taxSettings: {
+      type: DataTypes.JSONB,
+      defaultValue: {
+        country: 'US',
+        state: null,
+        province: null,
+        defaultTaxRate: 0,
+        taxId: null,
+        businessType: 'sole_proprietor',
+        fiscalYearEnd: '12-31',
+        weeklyDeductionScan: true,
+        deductionCategories: []
+      }
+    },
+    lastDeductionScan: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     notificationPreferences: {
       type: DataTypes.JSONB,
       defaultValue: {

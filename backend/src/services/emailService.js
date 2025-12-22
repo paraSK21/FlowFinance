@@ -428,6 +428,180 @@ class EmailService {
       </html>
     `;
   }
+
+  // Tax Deduction Email Templates
+  async sendWeeklyTaxSummary(user, scanResult) {
+    const subject = `Weekly Tax Scan: ${scanResult.found} New Deductions Found`;
+    const html = this.getWeeklyTaxSummaryTemplate(user, scanResult);
+    
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  async sendTaxReportReady(user, taxYear, report) {
+    const subject = `Your ${taxYear} Tax Report is Ready`;
+    const html = this.getTaxReportTemplate(user, taxYear, report);
+    
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  getWeeklyTaxSummaryTemplate(user, scanResult) {
+    const deductionsList = scanResult.deductions.slice(0, 10).map(d => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${new Date(d.date).toLocaleDateString()}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${d.category}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">$${parseFloat(d.amount).toFixed(2)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${Math.round(d.aiConfidence * 100)}%</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+          .stat-box { background: white; padding: 20px; border-radius: 8px; text-align: center; flex: 1; margin: 0 10px; }
+          .stat-number { font-size: 32px; font-weight: bold; color: #10b981; }
+          .stat-label { color: #6b7280; font-size: 14px; }
+          table { width: 100%; background: white; border-radius: 8px; margin: 20px 0; }
+          th { background: #f3f4f6; padding: 10px; text-align: left; }
+          .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💰 Weekly Tax Deduction Scan</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>Great news! We found ${scanResult.found} potential tax deductions from your recent transactions.</p>
+            
+            <div class="stats">
+              <div class="stat-box">
+                <div class="stat-number">${scanResult.found}</div>
+                <div class="stat-label">Deductions Found</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-number">$${scanResult.estimatedSavings.totalDeductions.toFixed(0)}</div>
+                <div class="stat-label">Total Amount</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-number">$${scanResult.estimatedSavings.estimatedSavings.toFixed(0)}</div>
+                <div class="stat-label">Est. Tax Savings</div>
+              </div>
+            </div>
+
+            ${scanResult.found > 0 ? `
+              <h3>Top Deductions Found:</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${deductionsList}
+                </tbody>
+              </table>
+              ${scanResult.found > 10 ? `<p style="text-align: center; color: #6b7280;">+ ${scanResult.found - 10} more deductions</p>` : ''}
+            ` : ''}
+
+            <a href="${process.env.FRONTEND_URL}/tax-deductions" class="button">Review Deductions</a>
+
+            <p><strong>Action Required:</strong> Please review and approve these deductions in your dashboard.</p>
+            <p>Remember to keep receipts for all approved deductions!</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getTaxReportTemplate(user, taxYear, report) {
+    const categoryList = Object.entries(report.byCategory).map(([type, data]) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${data.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${data.items.length}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${data.total.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .summary-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          table { width: 100%; background: white; border-radius: 8px; margin: 20px 0; }
+          th { background: #f3f4f6; padding: 10px; text-align: left; }
+          .total-row { font-weight: bold; background: #f3f4f6; }
+          .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📊 ${taxYear} Tax Report</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>Your tax report for ${taxYear} is ready!</p>
+            
+            <div class="summary-box">
+              <h3>Summary</h3>
+              <p><strong>Total Deductions:</strong> $${report.totalDeductions.toFixed(2)}</p>
+              <p><strong>Number of Deductions:</strong> ${report.deductionCount}</p>
+              <p><strong>Estimated Tax Savings:</strong> $${report.estimatedSavings.toFixed(2)}</p>
+            </div>
+
+            <h3>Deductions by Category:</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Count</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${categoryList}
+                <tr class="total-row">
+                  <td style="padding: 10px;">TOTAL</td>
+                  <td style="padding: 10px;">${report.deductionCount}</td>
+                  <td style="padding: 10px; text-align: right;">$${report.totalDeductions.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <a href="${process.env.FRONTEND_URL}/tax-report/${taxYear}" class="button">View Full Report</a>
+
+            <p><strong>Important:</strong> This report is for informational purposes. Please consult with a tax professional for filing.</p>
+          </div>
+          <div class="footer">
+            <p>Powered by FlowFinance</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
 
 module.exports = new EmailService();

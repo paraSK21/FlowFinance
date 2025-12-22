@@ -54,7 +54,7 @@ class NotificationService {
 
       // Send SMS if phone number is available
       if (invoice.clientPhone && twilioClient) {
-        const message = `Reminder: Invoice ${invoice.invoiceNumber} for $${invoice.amount} is ${daysOverdue > 0 ? `${daysOverdue} days overdue` : 'due soon'}. Please process payment.`;
+        const message = `Reminder: Invoice ${invoice.invoiceNumber} for ${invoice.amount} is ${daysOverdue > 0 ? `${daysOverdue} days overdue` : 'due soon'}. Please process payment.`;
         await this.sendSMS(invoice.clientPhone, message);
       }
     } catch (error) {
@@ -94,6 +94,26 @@ class NotificationService {
       });
     } catch (error) {
       console.error('Send WhatsApp error:', error);
+    }
+  }
+
+  async sendTaxDeductionAlert(user, scanResult) {
+    try {
+      const message = `Tax Alert: ${scanResult.found} new deductions found worth $${scanResult.estimatedSavings.totalDeductions.toFixed(2)}. Est. savings: $${scanResult.estimatedSavings.estimatedSavings.toFixed(2)}`;
+
+      // Send SMS if enabled
+      if (user.notificationPreferences.sms && user.phone && twilioClient) {
+        await this.sendSMS(user.phone, message);
+      }
+
+      // Send WhatsApp if enabled
+      if (user.notificationPreferences.whatsapp && user.phone && twilioClient) {
+        await this.sendWhatsApp(user.phone, message);
+      }
+
+      console.log('Tax deduction alert sent:', message);
+    } catch (error) {
+      console.error('Send tax deduction alert error:', error);
     }
   }
 }

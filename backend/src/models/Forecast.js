@@ -36,12 +36,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSONB,
       defaultValue: []
     },
-    confidence: {
-      type: DataTypes.FLOAT
-    },
-    modelVersion: {
-      type: DataTypes.STRING,
-      defaultValue: '1.0'
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     }
   }, {
     timestamps: true,

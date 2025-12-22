@@ -1,9 +1,11 @@
 // ====================
 // backend/src/controllers/taxController.js
 // ====================
-const { TaxDeduction, Transaction } = require('../models');
+const { TaxDeduction, Transaction, User } = require('../models');
 const { Op } = require('sequelize');
 const aiService = require('../services/aiCategorizationService');
+const taxDeductionService = require('../services/taxDeductionService');
+const taxCalculationService = require('../services/taxCalculationService');
 
 exports.scanDeductions = async (req, res) => {
   try {
@@ -213,7 +215,8 @@ exports.scanReceipt = async (req, res) => {
       status: 'pending',
       aiSuggested: true,
       aiConfidence: scannedData.confidence,
-      notes: `Scanned from receipt: ${scannedData.merchant}`
+      notes: `Scanned from receipt: ${scannedData.merchant}`,
+      scanSource: 'receipt_upload'
     });
 
     res.json({
@@ -223,5 +226,97 @@ exports.scanReceipt = async (req, res) => {
   } catch (error) {
     console.error('Scan receipt error:', error);
     res.status(500).json({ error: 'Failed to scan receipt' });
+  }
+};
+
+// Run weekly deduction scan manually
+exports.runWeeklyScan = async (req, res) => {
+  try {
+    const result = await taxDeductionService.weeklyDeductionScan(req.userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Weekly scan error:', error);
+    res.status(500).json({ error: 'Failed to run weekly scan' });
+  }
+};
+
+// Get deduction rules
+exports.getDeductionRules = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    const country = user.taxSettings?.country || 'US';
+    const rules = taxDeductionService.getDeductionRules(country);
+    res.json(rules);
+  } catch (error) {
+    console.error('Get deduction rules error:', error);
+    res.status(500).json({ error: 'Failed to fetch deduction rules' });
+  }
+};
+
+// Generate tax report
+exports.generateTaxReport = async (req, res) => {
+  try {
+    const { taxYear } = req.query;
+    const year = taxYear || new Date().getFullYear();
+    const report = await taxDeductionService.generateTaxReport(req.userId, year);
+    res.json(report);
+  } catch (error) {
+    console.error('Generate tax report error:', error);
+    res.status(500).json({ error: 'Failed to generate tax report' });
+  }
+};
+
+// Update tax settings
+exports.updateTaxSettings = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    const currentSettings = user.taxSettings || {};
+    
+    await user.update({
+      taxSettings: {
+        ...currentSettings,
+        ...req.body
+      }
+    });
+
+    res.json(user.taxSettings);
+  } catch (error) {
+    console.error('Update tax settings error:', error);
+    res.status(500).json({ error: 'Failed to update tax settings' });
+  }
+};
+
+// Get tax settings
+exports.getTaxSettings = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    res.json(user.taxSettings || {});
+  } catch (error) {
+    console.error('Get tax settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch tax settings' });
+  }
+};
+
+// Calculate tax for invoice
+exports.calculateInvoiceTax = async (req, res) => {
+  try {
+    const { subtotal, country, stateOrProvince } = req.body;
+    
+    if (!subtotal || !country || !stateOrProvince) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: subtotal, country, stateOrProvince' 
+      });
+    }
+
+    const taxCalc = taxCalculationService.calculateInvoiceTax(
+      parseFloat(subtotal),
+      country,
+      stateOrProvince
+    );
+
+    res.json(taxCalc);
+  } catch (error) {
+    console.error('Calculate invoice tax error:', error);
+    res.status(500).json({ error: 'Failed to calculate tax' });
   }
 };

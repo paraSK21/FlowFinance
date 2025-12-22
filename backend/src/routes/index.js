@@ -57,10 +57,16 @@ router.delete('/invoices/:id', authenticate, invoiceController.deleteInvoice);
 
 // Tax routes
 router.get('/tax/scan', authenticate, taxController.scanDeductions);
+router.post('/tax/weekly-scan', authenticate, taxController.runWeeklyScan);
 router.get('/tax/deductions', authenticate, taxController.getDeductions);
 router.put('/tax/deductions/:id', authenticate, taxController.updateDeduction);
 router.get('/tax/summary', authenticate, taxController.getTaxSummary);
 router.get('/tax/export', authenticate, taxController.exportDeductions);
+router.get('/tax/report', authenticate, taxController.generateTaxReport);
+router.get('/tax/deduction-rules', authenticate, taxController.getDeductionRules);
+router.get('/tax/settings', authenticate, taxController.getTaxSettings);
+router.put('/tax/settings', authenticate, taxController.updateTaxSettings);
+router.post('/tax/calculate-invoice-tax', authenticate, taxController.calculateInvoiceTax);
 router.post('/tax/scan-receipt', authenticate, upload.single('receipt'), taxController.scanReceipt);
 
 // Profit First routes

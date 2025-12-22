@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,6 +6,7 @@ const cron = require('node-cron');
 const db = require('./models');
 const routes = require('./routes');
 const { autoChaseInvoices } = require('./services/cronService');
+const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -19,7 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
@@ -39,11 +40,16 @@ app.use('/api', routes);
 // Auto-chase overdue invoices daily at 9 AM
 cron.schedule('0 9 * * *', autoChaseInvoices);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false,
+    error: 'Route not found' 
+  });
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
@@ -52,15 +58,16 @@ const jobScheduler = require('./jobs/scheduler');
 const socketService = require('./socket');
 
 // Database sync and server start
-db.sequelize.sync({ alter: true }).then(async () => {
+const syncOptions = process.env.NODE_ENV === 'production' 
+  ? { alter: false } // Never alter in production - use migrations
+  : { alter: true };  // OK in development
+
+db.sequelize.sync(syncOptions).then(async () => {
   console.log('Database tables synced successfully');
-  
-  // Load learned categorization patterns
-  const aiService = require('./services/aiCategorizationService');
-  await aiService.loadLearnedPatterns();
   
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     
     // Initialize WebSocket
     socketService.initialize(server);
@@ -70,6 +77,7 @@ db.sequelize.sync({ alter: true }).then(async () => {
   });
 }).catch(err => {
   console.error('Database connection error:', err);
+  process.exit(1);
 });
 
 // Graceful shutdown

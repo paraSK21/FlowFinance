@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { syncAllTransactions } = require('./syncTransactions');
 const { sendInvoiceReminders } = require('./invoiceReminders');
 const generateRecurringInvoices = require('./generateRecurringInvoices');
+const { runWeeklyTaxScan } = require('./weeklyTaxScan');
 
 class JobScheduler {
   constructor() {
@@ -44,6 +45,17 @@ class JobScheduler {
     });
     this.jobs.push({ name: 'Recurring Invoices', schedule: 'Daily at 6 AM', job: recurringJob });
 
+    // Weekly tax deduction scan - Every Monday at 8 AM
+    const taxScanJob = cron.schedule('0 8 * * 1', async () => {
+      console.log('Running weekly tax deduction scan...');
+      try {
+        await runWeeklyTaxScan();
+      } catch (error) {
+        console.error('Weekly tax scan error:', error);
+      }
+    });
+    this.jobs.push({ name: 'Weekly Tax Scan', schedule: 'Every Monday at 8 AM', job: taxScanJob });
+
     console.log(`Started ${this.jobs.length} scheduled jobs:`);
     this.jobs.forEach(({ name, schedule }) => {
       console.log(`  - ${name}: ${schedule}`);
@@ -73,6 +85,11 @@ class JobScheduler {
   async runRecurringInvoicesNow() {
     console.log('Manually triggering recurring invoice generation...');
     return await generateRecurringInvoices();
+  }
+
+  async runTaxScanNow() {
+    console.log('Manually triggering weekly tax scan...');
+    return await runWeeklyTaxScan();
   }
 }
 

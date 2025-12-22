@@ -148,51 +148,13 @@ class AICategorizationService {
   }
 
   buildCategoryKeywords() {
-    return {
-      'Revenue': ['payout', 'settlement', 'sales', 'stripe', 'razorpay payout', 'cashfree settlement', 
-                  'customer payment', 'invoice paid', 'payment received', 'deposit', 'income', 'revenue',
-                  'salary credit', 'salary credited', 'sal credit', 'credited by', 'transfer from'],
-      'Meals & Entertainment': ['zomato', 'swiggy', 'dominos', 'starbucks', 'café', 'cafe', 'cafeteria', 'restaurant', 
-                                'diner', 'food', 'pizza', 'burger', 'mcdonald', 'kfc', 'subway', 'dunkin', 'canteen', 'mess', 'iitb'],
-      'Operations': ['maintenance', 'repair', 'equipment', 'machinery', 'tools', 'hardware', 'software license', 
-                     'cred', 'credpay', 'credit card', 'bill payment'],
-      'Marketing': ['amazon ads', 'meta ads', 'google ads', 'facebook ads', 'instagram ads', 'linkedin ads',
-                    'campaign', 'ad spend', 'advertising', 'promotion', 'marketing', 'seo', 'sem'],
-      'Utilities': ['electricity bill', 'electric bill', 'power bill', 'water bill', 'wifi bill', 'broadband bill', 'internet bill',
-                    'mobile recharge', 'jio recharge', 'airtel recharge', 'vodafone', 'vi recharge', 'bsnl', 'gas bill', 'lpg', 'electricity', 'neft from acme'],
-      'Travel': ['uber', 'ola', 'rapido', 'airline', 'indigo', 'spicejet', 'air india', 'vistara', 'irctc',
-                 'flight', 'hotel', 'booking.com', 'makemytrip', 'goibibo', 'oyo', 'treebo', 'toll', 'parking', 'cab', 'taxi'],
-      'Professional Services': ['consulting', 'consultant', 'ca fees', 'chartered accountant', 'legal fees',
-                                'lawyer', 'attorney', 'audit', 'freelancer', 'contractor invoice', 'advisory'],
-      'Payroll': ['salary', 'payroll', 'wages', 'stipend', 'employee', 'staff payment', 'bonus', 'incentive'],
-      'Rent': ['rent', 'lease', 'landlord', 'property rent', 'office rent', 'warehouse rent'],
-      'Insurance': ['insurance', 'premium', 'policy', 'lic', 'hdfc life', 'icici lombard', 'bajaj allianz',
-                    'star health', 'max life', 'sbi life'],
-      'Taxes': ['tax', 'tds', 'tds payment', 'advance tax', 'gst payment', 'gst', 'income tax', 'itr'],
-      'Office Supplies': ['notebook', 'stationery', 'printer ink', 'pens', 'office chair', 'desk', 'paper',
-                          'stapler', 'file', 'folder']
-    };
+    const usCanadaRules = require('./categorizationRulesUSCA');
+    return usCanadaRules.categoryKeywords;
   }
 
   buildMerchantMappings() {
-    return {
-      // Food Delivery & Dining
-      'Meals & Entertainment': ['zomato', 'swiggy', 'dominos', 'pizza hut', 'starbucks', 'mcdonald',
-                                'kfc', 'subway', 'burger king', 'dunkin donuts', 'cafeteria', 'iitb', 'canteen', 'cafe'],
-      // Advertising Platforms
-      'Marketing': ['meta', 'facebook', 'instagram', 'google ads', 'linkedin', 'twitter ads'],
-      // Travel Services
-      'Travel': ['uber', 'ola', 'rapido', 'indigo', 'spicejet', 'air india', 'vistara', 'irctc',
-                 'makemytrip', 'goibibo', 'oyo', 'treebo', 'booking.com'],
-      // Telecom & Utilities
-      'Utilities': ['jio', 'airtel', 'vodafone', 'vi', 'bsnl', 'tata sky', 'dish tv', 'hathway', 'electricity', 'neft from acme'],
-      // Bill Payment & Credit Card Services
-      'Operations': ['cred', 'credit card payment', 'bill payment', 'credpay'],
-      // Insurance Companies
-      'Insurance': ['lic', 'hdfc life', 'icici lombard', 'bajaj allianz', 'star health', 'max life', 'sbi life'],
-      // Payment Gateways (Revenue) - Only for settlements/payouts
-      'Revenue': ['razorpay payout', 'razorpay settlement', 'stripe payout', 'cashfree settlement', 'instamojo settlement']
-    };
+    const usCanadaRules = require('./categorizationRulesUSCA');
+    return usCanadaRules.merchantMappings;
   }
 
   /**
@@ -310,12 +272,12 @@ class AICategorizationService {
   }
 
   /**
-   * Check learned patterns from user corrections (DB-backed)
+   * Check learned patterns from user corrections (in-memory only)
    */
   async checkLearnedPatterns(merchantTokens, amount, userId) {
     if (!userId || merchantTokens.length === 0) return null;
 
-    // Check in-memory cache first
+    // Check in-memory cache
     for (const token of merchantTokens) {
       const key = `${userId}:${token}`;
       const cached = this.merchantPatterns.get(key);
@@ -325,39 +287,6 @@ class AICategorizationService {
           return { category: cached.category, matchedToken: token };
         }
       }
-    }
-
-    // Query database for learned patterns
-    try {
-      const { CategoryLearning } = require('../models');
-      const { Op } = require('sequelize');
-      
-      const learned = await CategoryLearning.findOne({
-        where: { 
-          userId, 
-          merchantToken: { [Op.in]: merchantTokens } 
-        },
-        order: [['correctedAt', 'DESC']]
-      });
-
-      if (learned) {
-        // Check amount similarity if amount is stored
-        if (!learned.amount || this.isAmountSimilar(amount, parseFloat(learned.amount))) {
-          // Cache for future lookups
-          const key = `${userId}:${learned.merchantToken}`;
-          this.merchantPatterns.set(key, { 
-            category: learned.category, 
-            amount: learned.amount 
-          });
-          
-          return { 
-            category: learned.category, 
-            matchedToken: learned.merchantToken 
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Error querying learned patterns:', error);
     }
     
     return null;
@@ -699,7 +628,7 @@ Confidence: [0.XX]`;
   }
 
   /**
-   * Learn from user corrections (stores in DB for persistence)
+   * Learn from user corrections (in-memory only)
    */
   async learnFromCorrection(transactionId, transaction, newCategory, userId) {
     try {
@@ -711,25 +640,12 @@ Confidence: [0.XX]`;
         merchantName || ''
       );
       
-      // Persist to database
-      const { CategoryLearning } = require('../models');
       const learnedTokens = [];
       
       for (const token of parsedData.merchantTokens) {
         if (token.length > 3) {
-          // Update in-memory cache
+          // Update in-memory cache only
           this.learnPattern(token, newCategory, amount, userId);
-          
-          // Persist to database (upsert to handle duplicates)
-          await CategoryLearning.upsert({
-            userId,
-            transactionId,
-            merchantToken: token.toLowerCase(),
-            category: newCategory,
-            amount,
-            correctedAt: new Date()
-          });
-          
           learnedTokens.push(token);
         }
       }
@@ -748,71 +664,31 @@ Confidence: [0.XX]`;
   }
 
   /**
-   * Load learned patterns from database on startup
-   */
-  async loadLearnedPatterns(userId = null) {
-    try {
-      const { CategoryLearning } = require('../models');
-      const where = userId ? { userId } : {};
-      
-      const patterns = await CategoryLearning.findAll({
-        where,
-        order: [['correctedAt', 'DESC']]
-      });
-      
-      patterns.forEach(p => {
-        const key = `${p.userId}:${p.merchantToken}`;
-        this.merchantPatterns.set(key, { 
-          category: p.category, 
-          amount: p.amount ? parseFloat(p.amount) : null 
-        });
-      });
-      
-      console.log(`✓ Loaded ${patterns.length} learned patterns from database`);
-      return patterns.length;
-    } catch (error) {
-      console.error('Error loading learned patterns:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Get learned patterns for a specific user
+   * Get learned patterns for a specific user (from memory)
    */
   async getUserLearnedPatterns(userId) {
-    try {
-      const { CategoryLearning } = require('../models');
-      
-      const patterns = await CategoryLearning.findAll({
-        where: { userId },
-        order: [['correctedAt', 'DESC']],
-        limit: 100
-      });
-
-      return patterns.map(p => ({
-        merchantToken: p.merchantToken,
-        category: p.category,
-        amount: p.amount,
-        correctedAt: p.correctedAt
-      }));
-    } catch (error) {
-      console.error('Error fetching user patterns:', error);
-      return [];
+    const patterns = [];
+    
+    for (const [key, value] of this.merchantPatterns.entries()) {
+      if (key.startsWith(`${userId}:`)) {
+        const merchantToken = key.split(':')[1];
+        patterns.push({
+          merchantToken,
+          category: value.category,
+          amount: value.amount,
+          correctedAt: new Date() // Approximate
+        });
+      }
     }
+
+    return patterns;
   }
 
   /**
-   * Delete a learned pattern
+   * Delete a learned pattern (from memory)
    */
   async deleteLearnedPattern(userId, merchantToken) {
     try {
-      const { CategoryLearning } = require('../models');
-      
-      await CategoryLearning.destroy({
-        where: { userId, merchantToken: merchantToken.toLowerCase() }
-      });
-
-      // Remove from cache
       const key = `${userId}:${merchantToken.toLowerCase()}`;
       this.merchantPatterns.delete(key);
 

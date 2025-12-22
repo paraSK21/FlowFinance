@@ -189,21 +189,7 @@ class PlaidService {
           });
           savedTransactions.push(existing);
         } else {
-          // AI categorize the transaction (with fallback)
-          let aiResult = { category: 'Other', confidence: 0.5 };
-          try {
-            aiResult = await aiService.categorizeTransaction(
-              txn.name,
-              txn.merchant_name || '',
-              txn.amount,
-              userId,
-              txn.amount > 0 ? 'expense' : 'income'
-            );
-          } catch (aiError) {
-            console.log('AI categorization failed, using fallback:', aiError.message);
-          }
-
-          // Create new transaction
+          // Create new transaction first without AI categorization
           const newTransaction = await Transaction.create({
             userId,
             accountId: account.id,
@@ -213,14 +199,37 @@ class PlaidService {
             description: txn.name,
             merchantName: txn.merchant_name,
             category: txn.category ? txn.category[0] : null,
-            aiCategory: aiResult.category,
-            aiCategoryConfidence: aiResult.confidence,
+            aiCategory: 'Pending', // Will be updated by background job
+            aiCategoryConfidence: 0,
             subcategory: txn.category ? txn.category[1] : null,
             type: txn.amount > 0 ? 'expense' : 'income',
             pending: txn.pending,
           });
 
           savedTransactions.push(newTransaction);
+          
+          // AI categorize asynchronously (don't wait for it)
+          aiService.categorizeTransaction(
+            txn.name,
+            txn.merchant_name || '',
+            txn.amount,
+            userId,
+            txn.amount > 0 ? 'expense' : 'income'
+          ).then(aiResult => {
+            newTransaction.update({
+              aiCategory: aiResult.category,
+              aiCategoryConfidence: aiResult.confidence,
+              categorizationMethod: aiResult.method,
+              needsReview: aiResult.confidence < 0.75
+            });
+          }).catch(aiError => {
+            console.log('AI categorization failed for transaction:', txn.transaction_id, aiError.message);
+            newTransaction.update({
+              aiCategory: 'Other',
+              aiCategoryConfidence: 0.5,
+              needsReview: true
+            });
+          });
         }
       }
 

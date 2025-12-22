@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { DollarSign, Zap, TrendingUp, CheckCircle } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 
 function Financing() {
@@ -16,10 +16,7 @@ function Financing() {
 
   const fetchOptions = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/financing/options', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/financing/options')
       setOptions(response.data.options)
       setStats({
         avgMonthlyRevenue: response.data.avgMonthlyRevenue,
@@ -229,11 +226,7 @@ function ApplyModal({ option, onClose, onSuccess }) {
     setSubmitting(true)
 
     try {
-      const token = localStorage.getItem('token')
-      await axios.post('http://localhost:5000/api/financing/apply', 
-        { optionId: option.id, ...formData },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await api.post('/financing/apply', { optionId: option.id, ...formData })
       onSuccess()
     } catch (error) {
       toast.error('Failed to submit application')
