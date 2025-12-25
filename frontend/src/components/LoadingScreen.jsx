@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles } from 'lucide-react'
+import Logo from './Logo'
 
 const LoadingScreen = ({ message = 'Loading...' }) => {
   return (
@@ -19,20 +19,11 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
       {/* Animated Logo */}
       <div style={{
         position: 'relative',
-        marginBottom: '32px'
+        marginBottom: '32px',
+        animation: 'pulse 2s ease-in-out infinite'
       }}>
-        <div style={{
-          width: '80px',
-          height: '80px',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-          borderRadius: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          animation: 'pulse 2s ease-in-out infinite',
-          boxShadow: '0 20px 60px rgba(59, 130, 246, 0.4)'
-        }}>
-          <Sparkles size={40} color="white" />
+        <div style={{ transform: 'scale(1.67)' }}>
+          <Logo size="lg" />
         </div>
         
         {/* Rotating Ring */}

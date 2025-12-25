@@ -366,7 +366,7 @@ function Transactions() {
                           fontWeight: '600',
                           color: txn.type === 'income' ? '#10b981' : '#d1d5db'
                         }}>
-                          {txn.type === 'income' ? '+' : '-'}₹{Math.abs(txn.amount).toLocaleString()}
+                          {txn.type === 'income' ? '+' : '-'}${Math.abs(txn.amount).toLocaleString()}
                         </span>
                       </td>
                     </tr>

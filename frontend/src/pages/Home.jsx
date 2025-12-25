@@ -9,11 +9,12 @@ import {
   FileText,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
   Globe,
   Lock,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react'
+import Logo from '../components/Logo'
 import './Home.css'
 
 const Home = () => {
@@ -31,7 +32,7 @@ const Home = () => {
     {
       icon: <FileText className="w-6 h-6" />,
       title: 'Invoice Management',
-      description: 'Create, send, and track invoices with automated payment reminders.'
+      description: 'Create, send, and track invoices effortlessly.'
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
@@ -40,8 +41,8 @@ const Home = () => {
     },
     {
       icon: <Shield className="w-6 h-6" />,
-      title: 'Bank-Level Security',
-      description: 'Your data is protected with enterprise-grade encryption and security.'
+      title: 'Secure Platform',
+      description: 'Your data is protected with enterprise-grade encryption.'
     },
     {
       icon: <Zap className="w-6 h-6" />,
@@ -54,16 +55,16 @@ const Home = () => {
     'Connect unlimited bank accounts',
     'AI-powered financial insights',
     'Automated expense categorization',
-    'Real-time collaboration',
     'Tax-ready reports',
-    'Mobile app access'
+    'Smart cash flow forecasting',
+    'Invoice tracking'
   ]
 
   const stats = [
-    { value: '10K+', label: 'Active Users' },
-    { value: '$2B+', label: 'Transactions Processed' },
-    { value: '99.9%', label: 'Uptime' },
-    { value: '24/7', label: 'Support' }
+    { value: 'AI-Powered', label: 'Smart Categorization' },
+    { value: 'Real-Time', label: 'Transaction Sync' },
+    { value: 'Automated', label: 'Forecasting' },
+    { value: 'Secure', label: 'Platform' }
   ]
 
   return (
@@ -72,10 +73,14 @@ const Home = () => {
       <nav className="home-nav">
         <div className="nav-content">
           <div className="nav-logo">
-            <Sparkles className="w-8 h-8 text-blue-500" />
+            <Logo size="md" />
             <span className="logo-text">FlowFinance</span>
           </div>
           <div className="nav-links">
+            <a href="#features" className="nav-link">Features</a>
+            <Link to="/pricing" className="nav-link">Pricing</Link>
+            <Link to="/about" className="nav-link">About</Link>
+            <Link to="/contact" className="nav-link">Contact</Link>
             <Link to="/login" className="nav-link">Login</Link>
             <Link to="/register" className="nav-btn">Get Started</Link>
           </div>
@@ -87,7 +92,7 @@ const Home = () => {
         <div className="hero-content">
           <div className="hero-badge">
             <Sparkles className="w-4 h-4" />
-            <span>Trusted by 10,000+ businesses</span>
+            <span>Modern Financial Management Platform</span>
           </div>
           <h1 className="hero-title">
             Financial Management
@@ -114,7 +119,7 @@ const Home = () => {
             </div>
             <div className="hero-feature">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
-              <span>14-day free trial</span>
+              <span>7-day free trial</span>
             </div>
             <div className="hero-feature">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
@@ -169,7 +174,7 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="features-section">
+      <section id="features" className="features-section">
         <div className="section-header">
           <h2 className="section-title">Everything you need to succeed</h2>
           <p className="section-description">
@@ -197,8 +202,8 @@ const Home = () => {
               Built for modern businesses
             </h2>
             <p className="benefits-description">
-              Join thousands of businesses that trust FlowFinance to manage their 
-              financial operations efficiently and securely.
+              Experience the future of financial management with FlowFinance - 
+              designed to help your business grow efficiently and securely.
             </p>
             <div className="benefits-list">
               {benefits.map((benefit, index) => (
@@ -221,13 +226,13 @@ const Home = () => {
             </div>
             <div className="visual-card">
               <Lock className="w-12 h-12 text-green-400 mb-4" />
-              <h3 className="visual-title">Secure & Compliant</h3>
-              <p className="visual-text">Bank-level encryption and regulatory compliance</p>
+              <h3 className="visual-title">Secure Platform</h3>
+              <p className="visual-text">Enterprise-grade encryption keeps your data safe</p>
             </div>
             <div className="visual-card">
-              <Users className="w-12 h-12 text-purple-400 mb-4" />
-              <h3 className="visual-title">Team Collaboration</h3>
-              <p className="visual-text">Work together with your team in real-time</p>
+              <TrendingUp className="w-12 h-12 text-purple-400 mb-4" />
+              <h3 className="visual-title">Smart Insights</h3>
+              <p className="visual-text">AI-powered analytics for better financial decisions</p>
             </div>
           </div>
         </div>
@@ -238,7 +243,7 @@ const Home = () => {
         <div className="cta-content">
           <h2 className="cta-title">Ready to transform your finances?</h2>
           <p className="cta-description">
-            Join thousands of businesses already using FlowFinance
+            Start managing your business finances smarter with FlowFinance
           </p>
           <Link to="/register" className="cta-button">
             Start Your Free Trial
@@ -252,7 +257,7 @@ const Home = () => {
         <div className="footer-content">
           <div className="footer-brand">
             <div className="footer-logo">
-              <Sparkles className="w-6 h-6 text-blue-500" />
+              <Logo size="sm" />
               <span>FlowFinance</span>
             </div>
             <p className="footer-tagline">
@@ -262,26 +267,18 @@ const Home = () => {
           <div className="footer-links">
             <div className="footer-column">
               <h4>Product</h4>
-              <a href="#">Features</a>
-              <a href="#">Pricing</a>
-              <a href="#">Security</a>
+              <Link to="/features">Features</Link>
+              <Link to="/pricing">Pricing</Link>
             </div>
             <div className="footer-column">
               <h4>Company</h4>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Careers</a>
-            </div>
-            <div className="footer-column">
-              <h4>Support</h4>
-              <a href="#">Help Center</a>
-              <a href="#">Contact</a>
-              <a href="#">API Docs</a>
+              <Link to="/about">About</Link>
+              <Link to="/contact">Contact</Link>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2024 FlowFinance. All rights reserved.</p>
+          <p>&copy; 2026 FlowFinance. All rights reserved.</p>
         </div>
       </footer>
     </div>

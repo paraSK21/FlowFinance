@@ -23,8 +23,8 @@ class RazorpayService {
 
     try {
       const paymentLink = await this.razorpay.paymentLink.create({
-        amount: Math.round(parseFloat(invoice.amount) * 100), // Convert to paise
-        currency: 'INR',
+        amount: Math.round(parseFloat(invoice.amount) * 100), // Convert to cents
+        currency: 'USD',
         description: invoice.description || `Payment for invoice ${invoice.invoiceNumber}`,
         customer: {
           name: invoice.clientName,
@@ -68,7 +68,7 @@ class RazorpayService {
     try {
       const order = await this.razorpay.orders.create({
         amount: Math.round(parseFloat(invoice.amount) * 100),
-        currency: 'INR',
+        currency: 'USD',
         receipt: invoice.invoiceNumber,
         notes: {
           invoiceId: invoice.id.toString(),

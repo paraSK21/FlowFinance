@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { register } from '../store/slices/authSlice'
+import Logo from '../components/Logo'
 import toast from 'react-hot-toast'
 
 function Register() {
@@ -82,18 +83,8 @@ function Register() {
 
       <div style={{ width: '100%', maxWidth: '480px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)'
-          }}>
-            <span style={{ color: 'white', fontSize: '32px', fontWeight: '700' }}>F</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <Logo size="xl" />
           </div>
           <h1 style={{
             fontSize: '28px',

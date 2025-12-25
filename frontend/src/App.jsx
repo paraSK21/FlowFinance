@@ -4,6 +4,10 @@ import { useSelector, useDispatch } from 'react-redux'
 import Layout from './components/Layout'
 import LoadingScreen from './components/LoadingScreen'
 import Home from './pages/Home'
+import Features from './pages/Features'
+import Pricing from './pages/Pricing'
+import About from './pages/About'
+import Contact from './pages/Contact'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Onboarding from './pages/Onboarding'
@@ -65,6 +69,10 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={!token ? <Home /> : <Navigate to="/dashboard" />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={!token ? <Login /> : <Navigate to="/dashboard" />} />
       <Route path="/register" element={!token ? <Register /> : <Navigate to="/dashboard" />} />
       

@@ -1,5 +1,9 @@
 /* Home Page Styles */
 
+html {
+  scroll-behavior: smooth;
+}
+
 .home-container {
   min-height: 100vh;
   background: linear-gradient(to bottom, #0a0e1a 0%, #0f1419 50%, #0a0e1a 100%);

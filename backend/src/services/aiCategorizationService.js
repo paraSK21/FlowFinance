@@ -388,8 +388,8 @@ class AICategorizationService {
 
     // Step 3: Amount & frequency heuristics for ambiguous cases
     if (bestMatch.confidence < 0.85) {
-      // Large one-time debits (₹30k-₹2L) without clear keywords -> likely Operations
-      if (amount >= 30000 && amount <= 200000 && transactionType === 'expense') {
+      // Large one-time debits ($3k-$20k) without clear keywords -> likely Operations
+      if (amount >= 3000 && amount <= 20000 && transactionType === 'expense') {
         if (!text.match(/food|travel|rent|salary/)) {
           bestMatch = { category: 'Operations', confidence: 0.75, method: 'rule_based' };
         }
@@ -397,15 +397,15 @@ class AICategorizationService {
 
       // Credits from payment gateways, customers, or salary -> Revenue
       if (transactionType === 'income' || amount < 0) {
-        if (text.match(/payout|settlement|razorpay|stripe|cashfree|customer|salary credit|sal credit|credited by|transfer from/)) {
+        if (text.match(/payout|settlement|stripe|square|paypal|customer|salary credit|sal credit|credited by|transfer from|deposit/)) {
           bestMatch = { category: 'Revenue', confidence: 0.88, method: 'rule_based' };
         }
       }
 
       // Monthly recurring patterns (detected by amount similarity in future iterations)
-      // Rent: ₹20k-₹1L monthly
-      // Utilities: ₹500-₹5k monthly
-      // Payroll: ₹15k+ monthly
+      // Rent: $2k-$10k monthly
+      // Utilities: $50-$500 monthly
+      // Payroll: $1.5k+ monthly
     }
 
     return bestMatch;
@@ -448,9 +448,9 @@ ${this.categories.join(', ')}
 Transaction Details:
 - Description: "${description}"
 - Merchant/Tokens: "${merchantTokens}"
-- Amount: ₹${Math.abs(amount)}
+- Amount: $${Math.abs(amount)}
 
-Indian Business Context Rules:
+US/Canada Business Context Rules:
 - CRED/CredPay (credit card bill payment) = Operations
 - Cafeteria/Canteen/Mess/IITB Cafeteria = Meals & Entertainment
 - Zomato/Swiggy (food delivery) = Meals & Entertainment

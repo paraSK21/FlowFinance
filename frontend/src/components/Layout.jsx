@@ -3,6 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { LayoutDashboard, Receipt, TrendingUp, Package, DollarSign, FileText, User, ChevronDown } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
+import Logo from './Logo'
 
 function Layout() {
   const dispatch = useDispatch()
@@ -28,16 +29,8 @@ function Layout() {
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
             {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M8 8L24 8L24 24L8 24L8 8Z" fill="url(#logo-gradient)" />
-                <defs>
-                  <linearGradient id="logo-gradient" x1="8" y1="8" x2="24" y2="24">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#2563eb" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Logo size="md" />
               <span style={{ 
                 color: '#ffffff', 
                 fontSize: '20px', 
