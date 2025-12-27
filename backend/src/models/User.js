@@ -18,7 +18,41 @@ module.exports = (sequelize, DataTypes) => {
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true // Allow null for Google OAuth users
+    },
+    googleId: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true
+    },
+    profilePicture: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    paypalSubscriptionId: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true
+    },
+    subscriptionPlan: {
+      type: DataTypes.STRING,
+      defaultValue: 'free' // free, pro, enterprise
+    },
+    subscriptionStatus: {
+      type: DataTypes.STRING,
+      allowNull: true // active, cancelled, past_due, etc.
+    },
+    trialEndsAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    trialStartedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     firstName: {
       type: DataTypes.STRING,

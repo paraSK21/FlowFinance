@@ -26,13 +26,22 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Set trial period (7 days from now)
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+
     const user = await User.create({
       email,
       password: hashedPassword,
       firstName,
       lastName,
       businessName,
-      phone
+      phone,
+      trialStartedAt,
+      trialEndsAt,
+      subscriptionPlan: 'free',
+      subscriptionStatus: null
     });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
@@ -46,7 +55,8 @@ exports.register = async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        businessName: user.businessName
+        businessName: user.businessName,
+        trialEndsAt: user.trialEndsAt
       }
     });
   } catch (error) {

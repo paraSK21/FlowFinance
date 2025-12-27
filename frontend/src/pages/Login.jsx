@@ -22,7 +22,7 @@ function Login() {
     try {
       await dispatch(login(formData)).unwrap()
       toast.success('Login successful!')
-      navigate('/')
+      navigate('/app')
     } catch (error) {
       toast.error(error.message || 'Login failed')
     } finally {

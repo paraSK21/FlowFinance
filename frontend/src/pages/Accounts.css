@@ -220,6 +220,19 @@
   color: #666;
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 @media (max-width: 768px) {
   .accounts-page {
     padding: 15px;

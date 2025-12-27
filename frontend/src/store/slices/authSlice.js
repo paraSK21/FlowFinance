@@ -42,6 +42,12 @@ const authSlice = createSlice({
       state.user = null
       state.token = null
       localStorage.removeItem('token')
+    },
+    setCredentials: (state, action) => {
+      state.token = action.payload.token
+      if (action.payload.user) {
+        state.user = action.payload.user
+      }
     }
   },
   extraReducers: (builder) => {
@@ -72,11 +78,20 @@ const authSlice = createSlice({
         state.loading = false
         state.error = action.payload?.error || action.error.message
       })
+      .addCase(loadUser.pending, (state) => {
+        state.loading = true
+      })
       .addCase(loadUser.fulfilled, (state, action) => {
+        state.loading = false
         state.user = action.payload
+      })
+      .addCase(loadUser.rejected, (state) => {
+        state.loading = false
+        state.token = null
+        localStorage.removeItem('token')
       })
   }
 })
 
-export const { logout } = authSlice.actions
+export const { logout, setCredentials } = authSlice.actions
 export default authSlice.reducer

@@ -26,7 +26,7 @@ function Register() {
     try {
       await dispatch(register(formData)).unwrap()
       toast.success('Account created successfully!')
-      navigate('/')
+      navigate('/app')
     } catch (error) {
       console.error('Registration error:', error)
       const errorMessage = error?.error || error?.message || 'Registration failed'

@@ -22,8 +22,14 @@ function PlaidLink({ onSuccess, onExit }) {
       console.error('Failed to create link token:', error)
       console.error('Error response:', error.response?.data)
       console.error('Error status:', error.response?.status)
-      const errorMessage = error.response?.data?.error || 'Failed to initialize bank connection'
-      toast.error(errorMessage)
+      
+      // Store error for later display when user tries to connect
+      setLinkToken(null)
+      
+      // Only show error in console, not as toast on page load
+      if (error.response?.data?.error) {
+        console.warn('Plaid initialization error:', error.response.data.error)
+      }
     } finally {
       setLoading(false)
     }
@@ -79,20 +85,28 @@ function PlaidLink({ onSuccess, onExit }) {
     )
   }
 
+  const handleClick = () => {
+    if (!linkToken) {
+      toast.error('Bank connection is not available. Please check your Plaid configuration.')
+      return
+    }
+    open()
+  }
+
   return (
     <button
-      onClick={() => open()}
-      disabled={!ready}
+      onClick={handleClick}
+      disabled={!ready && linkToken !== null}
       style={{
         padding: '10px 20px',
-        background: ready ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : '#6b7280',
+        background: (ready || !linkToken) ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : '#6b7280',
         border: 'none',
         borderRadius: '8px',
         color: '#ffffff',
         fontSize: '14px',
         fontWeight: '600',
-        cursor: ready ? 'pointer' : 'not-allowed',
-        boxShadow: ready ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
+        cursor: (ready || !linkToken) ? 'pointer' : 'not-allowed',
+        boxShadow: (ready || !linkToken) ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
       }}
     >
       Connect Bank Account

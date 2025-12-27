@@ -3,32 +3,36 @@ const { Sequelize } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 
-// Debug: Check if password is loaded
-console.log('DB Config Check:');
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD type:', typeof process.env.DB_PASSWORD);
-console.log('DB_PASSWORD defined:', process.env.DB_PASSWORD !== undefined);
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_PORT:', process.env.DB_PORT);
+// Supabase Database Connection
+console.log('🔌 Connecting to Supabase...');
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
+if (!process.env.DATABASE_URL) {
+  console.error('❌ ERROR: DATABASE_URL not found in environment variables!');
+  console.error('Please add your Supabase connection string to .env file:');
+  console.error('DATABASE_URL=postgresql://postgres.xxxxx:password@aws-0-region.pooler.supabase.com:6543/postgres');
+  console.error('\nSee SUPABASE_SETUP.md for instructions.');
+  process.exit(1);
+}
+
+// Connect to Supabase using connection string
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
     }
+  },
+  pool: {
+    max: 10,
+    min: 2,
+    acquire: 30000,
+    idle: 10000
   }
-);
+});
+
+console.log('✅ Supabase connection configured');
 
 const db = {};
 

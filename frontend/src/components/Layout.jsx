@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import { LayoutDashboard, Receipt, TrendingUp, Package, DollarSign, FileText, User, ChevronDown } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Logo from './Logo'
+import TrialBanner from './TrialBanner'
 
 function Layout() {
   const dispatch = useDispatch()
@@ -106,6 +107,7 @@ function Layout() {
 
       {/* Main Content */}
       <main style={{ background: '#0f1419' }}>
+        <TrialBanner />
         <Outlet />
       </main>
     </div>

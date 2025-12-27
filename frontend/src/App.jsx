@@ -10,7 +10,10 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Onboarding from './pages/Onboarding'
+import GoogleLogin from './pages/GoogleLogin'
+import AuthCallback from './pages/AuthCallback'
+import PaymentRequired from './pages/PaymentRequired'
+import DashboardRedirect from './components/DashboardRedirect'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
 import Transactions from './pages/Transactions'
@@ -28,60 +31,50 @@ import { loadUser } from './store/slices/authSlice'
 
 function App() {
   const dispatch = useDispatch()
-  const { token, loading } = useSelector(state => state.auth)
-  const [onboardingComplete, setOnboardingComplete] = React.useState(
-    localStorage.getItem('onboarding_complete')
-  )
+  const { token, loading, user } = useSelector(state => state.auth)
+  const [initialLoad, setInitialLoad] = React.useState(true)
 
   useEffect(() => {
-    if (token) {
-      dispatch(loadUser())
-    }
-  }, [token, dispatch])
-
-  // Listen for storage changes to detect when onboarding is completed
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setOnboardingComplete(localStorage.getItem('onboarding_complete'))
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Also check periodically in case storage event doesn't fire (same tab)
-    const interval = setInterval(() => {
-      const current = localStorage.getItem('onboarding_complete')
-      if (current !== onboardingComplete) {
-        setOnboardingComplete(current)
+    const loadUserData = async () => {
+      if (token && !user) {
+        try {
+          await dispatch(loadUser()).unwrap()
+        } catch (error) {
+          console.error('Failed to load user:', error)
+          // If loadUser fails, we'll still let them through
+          // The token might be valid but the profile endpoint might have issues
+        }
       }
-    }, 100)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
+      setInitialLoad(false)
     }
-  }, [onboardingComplete])
 
-  if (loading) {
+    loadUserData()
+  }, [token, user, dispatch])
+
+  // Show loading only during initial load when we have a token
+  if (initialLoad && token) {
     return <LoadingScreen message="Loading FlowFinance..." />
   }
 
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={!token ? <Home /> : <Navigate to="/dashboard" />} />
+      <Route path="/" element={!token ? <Home /> : <Navigate to="/app" />} />
       <Route path="/features" element={<Features />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/login" element={!token ? <Login /> : <Navigate to="/dashboard" />} />
-      <Route path="/register" element={!token ? <Register /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={!token ? <GoogleLogin /> : <Navigate to="/app" />} />
+      <Route path="/register" element={!token ? <GoogleLogin /> : <Navigate to="/app" />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/payment-required" element={token ? <PaymentRequired /> : <Navigate to="/login" />} />
       
-      {/* Onboarding */}
-      <Route path="/onboarding" element={token ? <Onboarding /> : <Navigate to="/login" />} />
+      {/* App Entry Point - checks if user has accounts */}
+      <Route path="/app" element={token ? <DashboardRedirect /> : <Navigate to="/login" />} />
       
-      {/* Protected Routes */}
+      {/* Protected Routes - Main App */}
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" />}>
-        <Route path="dashboard" element={onboardingComplete ? <Dashboard /> : <Navigate to="/onboarding" />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="invoices" element={<Invoices />} />

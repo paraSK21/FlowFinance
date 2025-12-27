@@ -4,6 +4,7 @@ const router = express.Router();
 
 // Middleware
 const { authenticate } = require('../middleware/auth');
+const { checkSubscription } = require('../middleware/checkSubscription');
 
 // Controllers
 const authController = require('../controllers/authController');
@@ -27,63 +28,72 @@ router.post('/auth/login', authController.login);
 router.get('/auth/profile', authenticate, authController.getProfile);
 router.put('/auth/profile', authenticate, authController.updateProfile);
 
+// Google OAuth routes
+const googleAuthRoutes = require('./googleAuth');
+router.use('/auth', googleAuthRoutes);
+
+// PayPal payment routes
+const paypalRoutes = require('./paypal');
+router.use('/paypal', paypalRoutes);
+
 // Account routes
-router.post('/accounts/link-token', authenticate, accountController.createLinkToken);
-router.post('/accounts/exchange-token', authenticate, accountController.exchangeToken);
-router.get('/accounts', authenticate, accountController.getAccounts);
-router.post('/accounts/sync', authenticate, accountController.syncTransactions);
+router.post('/accounts/link-token', authenticate, checkSubscription, accountController.createLinkToken);
+router.post('/accounts/exchange-token', authenticate, checkSubscription, accountController.exchangeToken);
+router.get('/accounts', authenticate, checkSubscription, accountController.getAccounts);
+router.post('/accounts/sync', authenticate, checkSubscription, accountController.syncTransactions);
+router.delete('/accounts/:accountId', authenticate, checkSubscription, accountController.deleteAccount);
 
 // Transaction routes
-router.get('/transactions', authenticate, transactionController.getTransactions);
-router.get('/transactions/stats/summary', authenticate, transactionController.getStats);
-router.get('/transactions/needs-review', authenticate, transactionController.getLowConfidenceTransactions);
-router.get('/transactions/learned-patterns', authenticate, transactionController.getLearnedPatterns);
-router.post('/transactions/bulk-recategorize', authenticate, transactionController.bulkRecategorize);
-router.get('/transactions/:id', authenticate, transactionController.getTransaction);
-router.put('/transactions/:id', authenticate, transactionController.updateTransaction);
-router.put('/transactions/:id/correct-category', authenticate, transactionController.correctCategory);
-router.delete('/transactions/learned-patterns/:merchantToken', authenticate, transactionController.deleteLearnedPattern);
+router.get('/transactions', authenticate, checkSubscription, transactionController.getTransactions);
+router.get('/transactions/stats/summary', authenticate, checkSubscription, transactionController.getStats);
+router.get('/transactions/needs-review', authenticate, checkSubscription, transactionController.getLowConfidenceTransactions);
+router.get('/transactions/learned-patterns', authenticate, checkSubscription, transactionController.getLearnedPatterns);
+router.post('/transactions/bulk-recategorize', authenticate, checkSubscription, transactionController.bulkRecategorize);
+router.get('/transactions/:id', authenticate, checkSubscription, transactionController.getTransaction);
+router.put('/transactions/:id', authenticate, checkSubscription, transactionController.updateTransaction);
+router.put('/transactions/:id/correct-category', authenticate, checkSubscription, transactionController.correctCategory);
+router.delete('/transactions/learned-patterns/:merchantToken', authenticate, checkSubscription, transactionController.deleteLearnedPattern);
 
 // Invoice routes
-router.post('/invoices', authenticate, invoiceController.createInvoice);
-router.get('/invoices', authenticate, invoiceController.getInvoices);
-router.get('/invoices/stats/summary', authenticate, invoiceController.getInvoiceStats);
-router.get('/invoices/:id', authenticate, invoiceController.getInvoices);
-router.get('/invoices/:id/reminders', authenticate, invoiceController.getInvoiceReminders);
-router.put('/invoices/:id', authenticate, invoiceController.updateInvoice);
-router.post('/invoices/:id/mark-paid', authenticate, invoiceController.markAsPaid);
-router.post('/invoices/:id/chase', authenticate, invoiceController.chaseInvoice);
-router.delete('/invoices/:id', authenticate, invoiceController.deleteInvoice);
+router.post('/invoices', authenticate, checkSubscription, invoiceController.createInvoice);
+router.get('/invoices', authenticate, checkSubscription, invoiceController.getInvoices);
+router.get('/invoices/stats/summary', authenticate, checkSubscription, invoiceController.getInvoiceStats);
+router.get('/invoices/:id', authenticate, checkSubscription, invoiceController.getInvoices);
+router.get('/invoices/:id/reminders', authenticate, checkSubscription, invoiceController.getInvoiceReminders);
+router.put('/invoices/:id', authenticate, checkSubscription, invoiceController.updateInvoice);
+router.post('/invoices/:id/mark-paid', authenticate, checkSubscription, invoiceController.markAsPaid);
+router.post('/invoices/:id/chase', authenticate, checkSubscription, invoiceController.chaseInvoice);
+router.delete('/invoices/:id', authenticate, checkSubscription, invoiceController.deleteInvoice);
 
 // Tax routes
-router.get('/tax/scan', authenticate, taxController.scanDeductions);
-router.post('/tax/weekly-scan', authenticate, taxController.runWeeklyScan);
-router.get('/tax/deductions', authenticate, taxController.getDeductions);
-router.put('/tax/deductions/:id', authenticate, taxController.updateDeduction);
-router.get('/tax/summary', authenticate, taxController.getTaxSummary);
-router.get('/tax/export', authenticate, taxController.exportDeductions);
-router.get('/tax/report', authenticate, taxController.generateTaxReport);
-router.get('/tax/deduction-rules', authenticate, taxController.getDeductionRules);
-router.get('/tax/settings', authenticate, taxController.getTaxSettings);
-router.put('/tax/settings', authenticate, taxController.updateTaxSettings);
-router.post('/tax/calculate-invoice-tax', authenticate, taxController.calculateInvoiceTax);
-router.post('/tax/scan-receipt', authenticate, upload.single('receipt'), taxController.scanReceipt);
+router.get('/tax/scan', authenticate, checkSubscription, taxController.scanDeductions);
+router.post('/tax/weekly-scan', authenticate, checkSubscription, taxController.runWeeklyScan);
+router.get('/tax/deductions', authenticate, checkSubscription, taxController.getDeductions);
+router.put('/tax/deductions/:id', authenticate, checkSubscription, taxController.updateDeduction);
+router.get('/tax/summary', authenticate, checkSubscription, taxController.getTaxSummary);
+router.get('/tax/export', authenticate, checkSubscription, taxController.exportDeductions);
+router.get('/tax/report', authenticate, checkSubscription, taxController.generateTaxReport);
+router.get('/tax/deduction-rules', authenticate, checkSubscription, taxController.getDeductionRules);
+router.get('/tax/settings', authenticate, checkSubscription, taxController.getTaxSettings);
+router.put('/tax/settings', authenticate, checkSubscription, taxController.updateTaxSettings);
+router.post('/tax/calculate-invoice-tax', authenticate, checkSubscription, taxController.calculateInvoiceTax);
+router.post('/tax/scan-receipt', authenticate, checkSubscription, upload.single('receipt'), taxController.scanReceipt);
 
 // Profit First routes
-router.get('/profit-first/settings', authenticate, profitFirstController.getSettings);
-router.put('/profit-first/settings', authenticate, profitFirstController.updateSettings);
-router.get('/profit-first/calculate', authenticate, profitFirstController.calculateSplits);
-router.get('/profit-first/balances', authenticate, profitFirstController.getAccountBalances);
-router.get('/profit-first/simulate', authenticate, profitFirstController.simulateSplit);
+router.get('/profit-first/settings', authenticate, checkSubscription, profitFirstController.getSettings);
+router.put('/profit-first/settings', authenticate, checkSubscription, profitFirstController.updateSettings);
+router.get('/profit-first/calculate', authenticate, checkSubscription, profitFirstController.calculateSplits);
+router.get('/profit-first/balances', authenticate, checkSubscription, profitFirstController.getAccountBalances);
+router.get('/profit-first/simulate', authenticate, checkSubscription, profitFirstController.simulateSplit);
 
 // Financing routes
-router.get('/financing/options', authenticate, financingController.getFinancingOptions);
-router.post('/financing/apply', authenticate, financingController.applyForFinancing);
-router.get('/financing/applications/:applicationId', authenticate, financingController.getApplicationStatus);
+router.get('/financing/options', authenticate, checkSubscription, financingController.getFinancingOptions);
+router.post('/financing/apply', authenticate, checkSubscription, financingController.applyForFinancing);
+router.get('/financing/applications/:applicationId', authenticate, checkSubscription, financingController.getApplicationStatus);
 
 // Forecast routes
-router.post('/forecasts/generate', authenticate, forecastController.generateForecast);
-router.get('/forecasts', authenticate, forecastController.getForecasts);
+router.post('/forecasts/generate', authenticate, checkSubscription, forecastController.generateForecast);
+router.get('/forecasts', authenticate, checkSubscription, forecastController.getForecasts);
 
 // Plaid routes (US/CA banks)
 const plaidRoutes = require('./plaid');
@@ -92,9 +102,5 @@ router.use('/plaid', plaidRoutes);
 // Report routes
 const reportRoutes = require('./reports');
 router.use('/reports', reportRoutes);
-
-// Test routes (for testing dashboard)
-const testRoutes = require('./test');
-router.use('/test', testRoutes);
 
 module.exports = router;

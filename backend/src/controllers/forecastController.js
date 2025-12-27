@@ -10,6 +10,13 @@ exports.generateForecast = async (req, res) => {
       where: { userId: req.userId, isActive: true }
     });
 
+    if (!accounts || accounts.length === 0) {
+      return res.status(400).json({ 
+        error: 'No accounts found',
+        message: 'Please connect a bank account first'
+      });
+    }
+
     const currentBalance = accounts.reduce((sum, acc) => 
       sum + parseFloat(acc.currentBalance || 0), 0
     );
@@ -22,20 +29,29 @@ exports.generateForecast = async (req, res) => {
     const forecastData = result.forecasts.map(forecast => {
       runningBalance += forecast.netCashFlow;
       return {
-        ...forecast,
-        predictedBalance: runningBalance
+        date: forecast.date,
+        projectedIncome: parseFloat(forecast.projectedIncome) || 0,
+        projectedExpenses: parseFloat(forecast.projectedExpenses) || 0,
+        netCashFlow: parseFloat(forecast.netCashFlow) || 0,
+        predictedBalance: parseFloat(runningBalance) || 0,
+        incomeRange: {
+          min: parseFloat(forecast.incomeRange?.min) || 0,
+          max: parseFloat(forecast.incomeRange?.max) || 0
+        },
+        expenseRange: {
+          min: parseFloat(forecast.expenseRange?.min) || 0,
+          max: parseFloat(forecast.expenseRange?.max) || 0
+        }
       };
     });
 
     // Calculate summary statistics
     const summary = {
       method: 'statistical_improved',
-      confidence: result.confidence,
       recurringTransactions: result.recurringTransactions.length,
       dataPoints: result.analysis.dataPoints,
-      averageConfidence: forecastData.reduce((sum, f) => sum + f.confidence, 0) / forecastData.length,
-      projectedIncome: forecastData.reduce((sum, f) => sum + f.projectedIncome, 0),
-      projectedExpenses: forecastData.reduce((sum, f) => sum + f.projectedExpenses, 0)
+      projectedIncome: forecastData.reduce((sum, f) => sum + (parseFloat(f.projectedIncome) || 0), 0),
+      projectedExpenses: forecastData.reduce((sum, f) => sum + (parseFloat(f.projectedExpenses) || 0), 0)
     };
 
     // Save forecast
@@ -44,18 +60,21 @@ exports.generateForecast = async (req, res) => {
       startDate: new Date(),
       endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
       forecastData,
-      currentBalance,
-      projectedBalance: runningBalance,
+      currentBalance: parseFloat(currentBalance) || 0,
+      projectedBalance: parseFloat(runningBalance) || 0,
       metadata: summary
     });
 
+    // Return properly structured response
     res.json({
-      ...forecast.toJSON(),
-      summary,
+      forecastData: forecastData,
+      currentBalance: parseFloat(currentBalance) || 0,
+      projectedBalance: parseFloat(runningBalance) || 0,
+      summary: summary,
       recurringTransactions: result.recurringTransactions,
       analysis: {
-        avgDailyIncome: result.analysis.avgDailyIncome,
-        avgDailyExpenses: result.analysis.avgDailyExpenses,
+        avgDailyIncome: parseFloat(result.analysis.avgDailyIncome) || 0,
+        avgDailyExpenses: parseFloat(result.analysis.avgDailyExpenses) || 0,
         trend: result.analysis.trend
       }
     });

@@ -13,10 +13,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
 
   const reportTypes = [
-    { value: 'profit-loss', label: 'Profit & Loss', icon: TrendingUp },
-    { value: 'cash-flow', label: 'Cash Flow', icon: DollarSign },
-    { value: 'expenses', label: 'Expense Report', icon: TrendingDown },
-    { value: 'category', label: 'Category Breakdown', icon: BarChart3 }
+    { value: 'profit-loss', label: 'Profit & Loss', icon: TrendingUp }
   ];
 
   const generateReport = async () => {

@@ -396,7 +396,7 @@ class AICategorizationService {
       }
 
       // Credits from payment gateways, customers, or salary -> Revenue
-      if (transactionType === 'income' || amount < 0) {
+      if (transactionType === 'income') {
         if (text.match(/payout|settlement|stripe|square|paypal|customer|salary credit|sal credit|credited by|transfer from|deposit/)) {
           bestMatch = { category: 'Revenue', confidence: 0.88, method: 'rule_based' };
         }
@@ -1055,7 +1055,7 @@ Rules:
         dayOfMonthPatterns[dayOfMonth] = { income: [], expenses: [] };
       }
 
-      if (txn.type === 'income' || parseFloat(txn.amount) < 0) {
+      if (txn.type === 'income') {
         dayOfWeekPatterns[dayOfWeek].income.push(amount);
         dayOfMonthPatterns[dayOfMonth].income.push(amount);
         monthlyAverages.income += amount;
@@ -1070,8 +1070,8 @@ Rules:
     const weightedAverages = this.calculateWeightedAverages(cleanedTransactions);
     
     // Calculate simple averages as fallback
-    const incomeCount = cleanedTransactions.filter(t => t.type === 'income' || parseFloat(t.amount) < 0).length || 1;
-    const expenseCount = cleanedTransactions.filter(t => t.type === 'expense' && parseFloat(t.amount) >= 0).length || 1;
+    const incomeCount = cleanedTransactions.filter(t => t.type === 'income').length || 1;
+    const expenseCount = cleanedTransactions.filter(t => t.type === 'expense').length || 1;
     
     monthlyAverages.income = weightedAverages.income || (monthlyAverages.income / incomeCount);
     monthlyAverages.expenses = weightedAverages.expenses || (monthlyAverages.expenses / expenseCount);
@@ -1141,7 +1141,7 @@ Rules:
       const weight = (index + 1) / transactions.length;
       const amount = Math.abs(parseFloat(txn.amount));
 
-      if (txn.type === 'income' || parseFloat(txn.amount) < 0) {
+      if (txn.type === 'income') {
         weightedIncome += amount * weight;
         incomeWeightSum += weight;
       } else {

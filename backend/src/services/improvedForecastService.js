@@ -22,15 +22,28 @@ class ImprovedForecastService {
         order: [['date', 'ASC']]
       });
 
-      if (transactions.length < 10) {
-        throw new Error('Insufficient transaction history. Need at least 10 transactions.');
+      if (transactions.length < 3) {
+        throw new Error('Insufficient transaction history. Need at least 3 transactions.');
       }
+
+      console.log(`\n=== FORECAST GENERATION DEBUG ===`);
+      console.log(`Total transactions: ${transactions.length}`);
 
       // Analyze patterns
       const analysis = this.analyzeTransactionPatterns(transactions);
       
+      console.log(`Analysis period: ${analysis.totalDays} days`);
+      console.log(`Total income in period: $${analysis.totalIncome.toFixed(2)}`);
+      console.log(`Total expenses in period: $${analysis.totalExpenses.toFixed(2)}`);
+      console.log(`Income transactions: ${analysis.incomeCount}`);
+      console.log(`Expense transactions: ${analysis.expenseCount}`);
+      console.log(`Avg daily income: $${analysis.avgDailyIncome.toFixed(2)}`);
+      console.log(`Avg daily expenses: $${analysis.avgDailyExpenses.toFixed(2)}`);
+      
       // Detect recurring transactions
       const recurringTxns = this.detectRecurringTransactions(transactions);
+      
+      console.log(`Recurring transactions detected: ${recurringTxns.length}`);
       
       // Generate daily forecasts
       const forecasts = this.generateDailyForecasts(
@@ -39,11 +52,21 @@ class ImprovedForecastService {
         days
       );
 
+      // Calculate totals for the forecast period
+      const totalProjectedIncome = forecasts.reduce((sum, f) => sum + f.projectedIncome, 0);
+      const totalProjectedExpenses = forecasts.reduce((sum, f) => sum + f.projectedExpenses, 0);
+      const totalNetCashFlow = forecasts.reduce((sum, f) => sum + f.netCashFlow, 0);
+
+      console.log(`\n=== ${days}-DAY FORECAST TOTALS ===`);
+      console.log(`Total projected income: $${totalProjectedIncome.toFixed(2)}`);
+      console.log(`Total projected expenses: $${totalProjectedExpenses.toFixed(2)}`);
+      console.log(`Total net cash flow: $${totalNetCashFlow.toFixed(2)}`);
+      console.log(`===================================\n`);
+
       return {
         forecasts,
         analysis,
-        recurringTransactions: recurringTxns,
-        confidence: this.calculateOverallConfidence(analysis, recurringTxns)
+        recurringTransactions: recurringTxns
       };
     } catch (error) {
       console.error('Forecast generation error:', error);
@@ -108,11 +131,18 @@ class ImprovedForecastService {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
+    // Calculate number of days in the dataset
+    const dates = cleanedTxns.map(t => new Date(t.date));
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+    const totalDays = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+
     const incomeCount = cleanedTxns.filter(t => t.type === 'income').length || 1;
     const expenseCount = cleanedTxns.filter(t => t.type === 'expense').length || 1;
 
-    const avgDailyIncome = totalIncome / incomeCount;
-    const avgDailyExpenses = totalExpenses / expenseCount;
+    // FIXED: Calculate daily averages by dividing by days, not transaction count
+    const avgDailyIncome = totalIncome / totalDays;
+    const avgDailyExpenses = totalExpenses / totalDays;
 
     // Calculate trend
     const trend = this.calculateTrend(cleanedTxns);
@@ -127,7 +157,10 @@ class ImprovedForecastService {
       totalExpenses,
       trend,
       dataPoints: cleanedTxns.length,
-      outlierCount: transactions.length - cleanedTxns.length
+      outlierCount: transactions.length - cleanedTxns.length,
+      totalDays,
+      incomeCount,
+      expenseCount
     };
   }
 
@@ -209,12 +242,32 @@ class ImprovedForecastService {
   }
 
   /**
-   * Generate daily forecasts
+   * Generate daily forecasts with ranges and business rules
    */
   generateDailyForecasts(analysis, recurringTxns, days) {
     const forecasts = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    console.log(`\n=== DAILY FORECAST GENERATION ===`);
+    console.log(`Using avg daily income: $${analysis.avgDailyIncome.toFixed(2)}`);
+    console.log(`Using avg daily expenses: $${analysis.avgDailyExpenses.toFixed(2)}`);
+    console.log(`Historical period: ${analysis.totalDays} days`);
+    console.log(`Forecasting for: ${days} days`);
+    console.log(`Recurring transactions: ${recurringTxns.length}`);
+
+    // Calculate standard deviations for ranges
+    const incomeStdDev = this.calculateStandardDeviation(
+      Object.values(analysis.dayOfWeekPatterns).flatMap(p => p.income)
+    );
+    const expenseStdDev = this.calculateStandardDeviation(
+      Object.values(analysis.dayOfWeekPatterns).flatMap(p => p.expenses)
+    );
+
+    let totalForecastIncome = 0;
+    let totalForecastExpenses = 0;
+    let totalRecurringIncome = 0;
+    let totalRecurringExpenses = 0;
 
     for (let i = 1; i <= days; i++) {
       const forecastDate = new Date(today);
@@ -222,8 +275,9 @@ class ImprovedForecastService {
 
       const dayOfWeek = forecastDate.getDay();
       const dayOfMonth = forecastDate.getDate();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-      // Base prediction from patterns
+      // Base prediction from patterns (this already includes historical recurring transactions)
       let predictedIncome = this.predictAmount(
         analysis.dayOfWeekPatterns[dayOfWeek]?.income || [],
         analysis.dayOfMonthPatterns[dayOfMonth]?.income || [],
@@ -236,7 +290,16 @@ class ImprovedForecastService {
         analysis.avgDailyExpenses
       );
 
-      // Add recurring transactions
+      // Business Rule: Reduce income prediction on weekends (B2B businesses)
+      if (isWeekend) {
+        predictedIncome *= 0.3; // 70% reduction on weekends
+      }
+
+      // FIXED: Only add recurring transactions if they're NOT already in the daily average
+      // Check if this is a specific recurring transaction date
+      let recurringIncomeToday = 0;
+      let recurringExpensesToday = 0;
+      
       recurringTxns.forEach(recurring => {
         const daysSinceNext = Math.round((forecastDate - recurring.nextDate) / (1000 * 60 * 60 * 24));
         
@@ -244,55 +307,92 @@ class ImprovedForecastService {
         if (Math.abs(daysSinceNext) <= 2 || 
             (daysSinceNext > 0 && daysSinceNext % recurring.intervalDays <= 2)) {
           if (recurring.type === 'income') {
-            predictedIncome += recurring.amount;
+            recurringIncomeToday += recurring.amount;
           } else {
-            predictedExpenses += recurring.amount;
+            recurringExpensesToday += recurring.amount;
           }
         }
       });
+
+      // Only add recurring if it's significantly more than the daily average
+      // (to avoid double-counting what's already in the average)
+      if (recurringIncomeToday > analysis.avgDailyIncome * 2) {
+        predictedIncome = recurringIncomeToday;
+        totalRecurringIncome += recurringIncomeToday;
+      }
+      
+      if (recurringExpensesToday > analysis.avgDailyExpenses * 2) {
+        predictedExpenses = recurringExpensesToday;
+        totalRecurringExpenses += recurringExpensesToday;
+      }
 
       // Apply trend adjustment
       const trendFactor = 1 + (analysis.trend.incomeTrend * (i / days));
       predictedIncome *= trendFactor;
       predictedExpenses *= (1 + (analysis.trend.expenseTrend * (i / days)));
 
-      // Calculate confidence (decreases over time)
-      const baseConfidence = Math.min(0.90, 0.5 + (analysis.dataPoints / 100));
-      const timeDecay = Math.max(0.5, 1 - (i / (days * 2)));
-      const confidence = baseConfidence * timeDecay;
+      totalForecastIncome += predictedIncome;
+      totalForecastExpenses += predictedExpenses;
+
+      // Calculate ranges using standard deviation (not random)
+      const incomeRange = incomeStdDev * 0.5; // ±0.5 std dev for range
+      const expenseRange = expenseStdDev * 0.5;
 
       forecasts.push({
         date: forecastDate,
         projectedIncome: Math.max(0, predictedIncome),
         projectedExpenses: Math.max(0, predictedExpenses),
         netCashFlow: predictedIncome - predictedExpenses,
-        confidence: Math.max(0.3, Math.min(0.95, confidence))
+        // Add ranges for uncertainty
+        incomeRange: {
+          min: Math.max(0, predictedIncome - incomeRange),
+          max: predictedIncome + incomeRange
+        },
+        expenseRange: {
+          min: Math.max(0, predictedExpenses - expenseRange),
+          max: predictedExpenses + expenseRange
+        }
       });
     }
+
+    console.log(`Total forecast income (${days} days): $${totalForecastIncome.toFixed(2)}`);
+    console.log(`Total forecast expenses (${days} days): $${totalForecastExpenses.toFixed(2)}`);
+    console.log(`  - From recurring income: $${totalRecurringIncome.toFixed(2)}`);
+    console.log(`  - From recurring expenses: $${totalRecurringExpenses.toFixed(2)}`);
+    console.log(`Net forecast: $${(totalForecastIncome - totalForecastExpenses).toFixed(2)}`);
+    console.log(`===================================\n`);
 
     return forecasts;
   }
 
   /**
-   * Predict amount using weighted average of patterns
+   * Predict amount using weighted average of patterns (NO RANDOMNESS)
    */
   predictAmount(weekData, monthData, overallAvg) {
     // Prefer month-specific data (more reliable for recurring)
     if (monthData.length > 0) {
-      const avg = monthData.reduce((a, b) => a + b, 0) / monthData.length;
-      const volatility = this.calculateVolatility(monthData);
-      return avg * (1 + (Math.random() - 0.5) * volatility);
+      return monthData.reduce((a, b) => a + b, 0) / monthData.length;
     }
     
     // Fall back to week data
     if (weekData.length > 0) {
-      const avg = weekData.reduce((a, b) => a + b, 0) / weekData.length;
-      const volatility = this.calculateVolatility(weekData);
-      return avg * (1 + (Math.random() - 0.5) * volatility);
+      return weekData.reduce((a, b) => a + b, 0) / weekData.length;
     }
 
     // Fall back to overall average
-    return overallAvg * (1 + (Math.random() - 0.5) * 0.2);
+    return overallAvg;
+  }
+
+  /**
+   * Calculate standard deviation for range predictions
+   */
+  calculateStandardDeviation(amounts) {
+    if (amounts.length < 2) return 0;
+
+    const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+    const squaredDiffs = amounts.map(val => Math.pow(val - mean, 2));
+    const variance = squaredDiffs.reduce((a, b) => a + b, 0) / amounts.length;
+    return Math.sqrt(variance);
   }
 
   /**
@@ -368,29 +468,6 @@ class ImprovedForecastService {
     
     const volatility = mean > 0 ? stdDev / mean : 0.2;
     return Math.min(0.4, volatility);
-  }
-
-  /**
-   * Calculate overall forecast confidence
-   */
-  calculateOverallConfidence(analysis, recurringTxns) {
-    let confidence = 0.5;
-
-    // More data points = higher confidence
-    if (analysis.dataPoints > 50) confidence += 0.2;
-    else if (analysis.dataPoints > 20) confidence += 0.1;
-
-    // Recurring transactions = higher confidence
-    if (recurringTxns.length > 5) confidence += 0.15;
-    else if (recurringTxns.length > 2) confidence += 0.1;
-
-    // Stable trend = higher confidence
-    if (Math.abs(analysis.trend.incomeTrend) < 0.1 && 
-        Math.abs(analysis.trend.expenseTrend) < 0.1) {
-      confidence += 0.1;
-    }
-
-    return Math.min(0.90, confidence);
   }
 }
 

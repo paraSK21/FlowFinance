@@ -95,6 +95,18 @@ class PlaidService {
       const savedAccounts = [];
       for (const account of accounts) {
         console.log('Saving account:', account.name);
+        console.log('Account balances from Plaid:', {
+          current: account.balances.current,
+          available: account.balances.available,
+          currency: account.balances.iso_currency_code
+        });
+        
+        // Ensure balances are properly converted to numbers
+        const currentBalance = parseFloat(account.balances.current) || 0;
+        const availableBalance = parseFloat(account.balances.available) || 0;
+        
+        console.log('Converted balances:', { currentBalance, availableBalance });
+        
         const savedAccount = await Account.create({
           userId,
           plaidAccessToken: accessToken,
@@ -105,8 +117,8 @@ class PlaidService {
           accountName: account.name,
           accountType: account.type,
           accountSubtype: account.subtype,
-          currentBalance: account.balances.current || 0,
-          availableBalance: account.balances.available || 0,
+          currentBalance: currentBalance,
+          availableBalance: availableBalance,
           currency: account.balances.iso_currency_code || 'USD',
           isActive: true,
         });
@@ -202,7 +214,7 @@ class PlaidService {
             aiCategory: 'Pending', // Will be updated by background job
             aiCategoryConfidence: 0,
             subcategory: txn.category ? txn.category[1] : null,
-            type: txn.amount > 0 ? 'expense' : 'income',
+            type: txn.amount > 0 ? 'expense' : 'income', // Plaid: positive = expense (debit), negative = income (credit)
             pending: txn.pending,
           });
 
@@ -214,7 +226,7 @@ class PlaidService {
             txn.merchant_name || '',
             txn.amount,
             userId,
-            txn.amount > 0 ? 'expense' : 'income'
+            txn.amount > 0 ? 'expense' : 'income' // Plaid: positive = expense (debit), negative = income (credit)
           ).then(aiResult => {
             newTransaction.update({
               aiCategory: aiResult.category,
@@ -243,9 +255,16 @@ class PlaidService {
       );
 
       if (accountData) {
+        console.log('Updating account balance:', {
+          accountName: account.accountName,
+          oldBalance: account.currentBalance,
+          newBalance: accountData.balances.current,
+          available: accountData.balances.available
+        });
+        
         await account.update({
-          currentBalance: accountData.balances.current,
-          availableBalance: accountData.balances.available,
+          currentBalance: parseFloat(accountData.balances.current) || 0,
+          availableBalance: parseFloat(accountData.balances.available) || 0,
           lastSynced: new Date(),
         });
       }

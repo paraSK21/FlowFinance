@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FileText, Upload, Scan, Download, CheckCircle, XCircle } from 'lucide-react'
+import { FileText, Scan, Download, CheckCircle, XCircle } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -55,26 +55,7 @@ function Tax() {
     }
   }
 
-  const handleReceiptUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
 
-    const formData = new FormData()
-    formData.append('receipt', file)
-
-    try {
-      await api.post('/tax/scan-receipt', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-      toast.success('Receipt scanned successfully!')
-      fetchDeductions()
-      fetchSummary()
-    } catch (error) {
-      toast.error('Failed to scan receipt')
-    }
-  }
 
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -170,7 +151,7 @@ function Tax() {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <ActionCard
             icon={Scan}
             title="Auto-Scan Transactions"
@@ -179,15 +160,6 @@ function Tax() {
             onClick={handleScanTransactions}
             disabled={scanning}
             color="#3b82f6"
-          />
-          <ActionCard
-            icon={Upload}
-            title="Upload Receipt"
-            description="Upload a receipt image and AI will extract deduction details"
-            buttonText="Upload Receipt"
-            isFileUpload
-            onFileChange={handleReceiptUpload}
-            color="#10b981"
           />
         </div>
 

@@ -3,7 +3,7 @@
  * Track all important actions for security and compliance
  */
 
-const { sequelize } = require('../config/database');
+const { sequelize } = require('../models');
 
 class AuditLogService {
   /**

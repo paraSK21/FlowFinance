@@ -22,7 +22,7 @@ exports.getFinancingOptions = async (req, res) => {
     // Calculate average monthly revenue
     const revenue = transactions
       .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+      .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount || 0)), 0);
 
     const avgMonthlyRevenue = revenue / 3;
 

@@ -3,9 +3,8 @@
  * Provides comprehensive financial analytics and reporting
  */
 
-const { Transaction, Invoice, Account } = require('../models');
+const { Transaction, Invoice, Account, sequelize } = require('../models');
 const { Op } = require('sequelize');
-const sequelize = require('../config/database');
 
 class ReportService {
   /**
@@ -40,10 +39,11 @@ class ReportService {
       let totalExpenses = 0;
 
       transactions.forEach(txn => {
-        if (txn.amount < 0) {
-          const category = txn.category || 'Uncategorized';
-          expensesByCategory[category] = (expensesByCategory[category] || 0) + Math.abs(txn.amount);
-          totalExpenses += Math.abs(txn.amount);
+        if (txn.type === 'expense') {
+          const category = txn.aiCategory || txn.category || 'Uncategorized';
+          const expenseAmount = Math.abs(parseFloat(txn.amount));
+          expensesByCategory[category] = (expensesByCategory[category] || 0) + expenseAmount;
+          totalExpenses += expenseAmount;
         }
       });
 
@@ -101,16 +101,18 @@ class ReportService {
           dailyCashFlow[date] = { inflow: 0, outflow: 0, net: 0 };
         }
 
-        if (txn.amount > 0) {
-          dailyCashFlow[date].inflow += txn.amount;
-          totalInflow += txn.amount;
+        const txnAmount = Math.abs(parseFloat(txn.amount));
+        
+        if (txn.type === 'income') {
+          dailyCashFlow[date].inflow += txnAmount;
+          totalInflow += txnAmount;
         } else {
-          dailyCashFlow[date].outflow += Math.abs(txn.amount);
-          totalOutflow += Math.abs(txn.amount);
+          dailyCashFlow[date].outflow += txnAmount;
+          totalOutflow += txnAmount;
         }
 
         dailyCashFlow[date].net = dailyCashFlow[date].inflow - dailyCashFlow[date].outflow;
-        runningBalance += txn.amount;
+        runningBalance += (txn.type === 'income' ? txnAmount : -txnAmount);
       });
 
       return {
@@ -202,28 +204,29 @@ class ReportService {
       const expenses = await Transaction.findAll({
         where: {
           userId,
-          amount: { [Op.lt]: 0 },
+          type: 'expense',
           date: {
             [Op.between]: [startDate, endDate]
           }
         }
       });
 
-      const totalExpenses = expenses.reduce((sum, exp) => sum + Math.abs(exp.amount), 0);
+      const totalExpenses = expenses.reduce((sum, exp) => sum + Math.abs(parseFloat(exp.amount)), 0);
 
       // Group by category
       const byCategory = {};
       expenses.forEach(exp => {
-        const category = exp.category || 'Uncategorized';
+        const category = exp.aiCategory || exp.category || 'Uncategorized';
         if (!byCategory[category]) {
           byCategory[category] = { count: 0, amount: 0, transactions: [] };
         }
+        const expAmount = Math.abs(parseFloat(exp.amount));
         byCategory[category].count++;
-        byCategory[category].amount += Math.abs(exp.amount);
+        byCategory[category].amount += expAmount;
         byCategory[category].transactions.push({
           date: exp.date,
           description: exp.description,
-          amount: Math.abs(exp.amount)
+          amount: expAmount
         });
       });
 
@@ -234,13 +237,13 @@ class ReportService {
 
       // Top expenses
       const topExpenses = expenses
-        .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+        .sort((a, b) => Math.abs(parseFloat(b.amount)) - Math.abs(parseFloat(a.amount)))
         .slice(0, 10)
         .map(exp => ({
           date: exp.date,
           description: exp.description,
-          category: exp.category,
-          amount: Math.abs(exp.amount)
+          category: exp.aiCategory || exp.category,
+          amount: Math.abs(parseFloat(exp.amount))
         }));
 
       return {
@@ -301,17 +304,17 @@ class ReportService {
       });
 
       transactions.forEach(txn => {
-        if (txn.amount < 0) {
+        if (txn.type === 'expense') {
           const month = new Date(txn.date).getMonth();
           const quarter = `Q${Math.floor(month / 3) + 1}`;
-          quarters[quarter].expenses += Math.abs(txn.amount);
+          quarters[quarter].expenses += Math.abs(parseFloat(txn.amount));
         }
       });
 
       const totalRevenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
       const totalExpenses = transactions
-        .filter(txn => txn.amount < 0)
-        .reduce((sum, txn) => sum + Math.abs(txn.amount), 0);
+        .filter(txn => txn.type === 'expense')
+        .reduce((sum, txn) => sum + Math.abs(parseFloat(txn.amount)), 0);
 
       return {
         year,

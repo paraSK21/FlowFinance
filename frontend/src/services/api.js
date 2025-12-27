@@ -32,10 +32,24 @@ api.interceptors.response.use(
     })
     
     if (error.response?.status === 401) {
-      console.warn('Unauthorized - redirecting to login')
+      console.warn('Unauthorized - clearing token')
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Only redirect if not already on login/auth pages
+      if (!window.location.pathname.startsWith('/login') && 
+          !window.location.pathname.startsWith('/auth') &&
+          !window.location.pathname.startsWith('/register')) {
+        window.location.href = '/login'
+      }
     }
+    
+    // Handle payment required (402)
+    if (error.response?.status === 402) {
+      console.warn('Payment required - trial expired')
+      if (error.response?.data?.requiresPayment) {
+        window.location.href = '/payment-required'
+      }
+    }
+    
     return Promise.reject(error)
   }
 )

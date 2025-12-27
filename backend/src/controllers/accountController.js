@@ -88,3 +88,30 @@ exports.syncTransactions = async (req, res) => {
     res.status(500).json({ error: 'Failed to sync transactions', message: error.message });
   }
 };
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    
+    const account = await Account.findOne({
+      where: { id: accountId, userId: req.userId }
+    });
+
+    if (!account) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    // Delete associated transactions first
+    await Transaction.destroy({
+      where: { accountId: account.id }
+    });
+
+    // Delete the account
+    await account.destroy();
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+};
