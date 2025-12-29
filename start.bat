@@ -29,7 +29,16 @@ start "FlowFinance Backend" cmd /k "npm start"
 cd ..
 
 echo Waiting for backend to start...
-timeout /t 5 /nobreak >nul
+echo This may take 10-15 seconds for database sync...
+:wait_backend
+timeout /t 2 /nobreak >nul
+curl -s http://localhost:5000/health >nul 2>&1
+if errorlevel 1 (
+    echo Still waiting for backend...
+    goto wait_backend
+)
+echo Backend is ready!
+echo.
 
 echo Starting Frontend Server...
 cd frontend

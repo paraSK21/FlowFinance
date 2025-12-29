@@ -1,4 +1,6 @@
-// Tax Calculation Service for US/Canada
+// Tax Calculation Service for US/Canada - Production Ready
+// Includes validation and proper error handling
+
 const TAX_RATES = {
   US: {
     // State sales tax rates (simplified - actual rates vary by locality)
@@ -31,17 +33,96 @@ const TAX_RATES = {
   }
 };
 
+// Valid state/province codes for validation
+const VALID_US_STATES = Object.keys(TAX_RATES.US);
+const VALID_CA_PROVINCES = Object.keys(TAX_RATES.CA);
+
 class TaxCalculationService {
-  // Calculate invoice tax
-  calculateInvoiceTax(subtotal, country, stateOrProvince) {
-    if (country === 'US') {
-      return this.calculateUSTax(subtotal, stateOrProvince);
-    } else if (country === 'CA') {
-      return this.calculateCanadaTax(subtotal, stateOrProvince);
+  /**
+   * Safe float conversion with null/undefined handling
+   */
+  safeFloat(value, defaultValue = 0) {
+    if (value === null || value === undefined || isNaN(value)) {
+      return defaultValue;
     }
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  /**
+   * Validate country code
+   */
+  isValidCountry(country) {
+    return country === 'US' || country === 'CA';
+  }
+
+  /**
+   * Validate state/province code
+   */
+  isValidStateProvince(country, stateOrProvince) {
+    if (!stateOrProvince) return false;
+    
+    const code = stateOrProvince.toUpperCase();
+    
+    if (country === 'US') {
+      return VALID_US_STATES.includes(code);
+    } else if (country === 'CA') {
+      return VALID_CA_PROVINCES.includes(code);
+    }
+    
+    return false;
+  }
+
+  /**
+   * Calculate invoice tax with validation
+   */
+  calculateInvoiceTax(subtotal, country, stateOrProvince) {
+    // Validate inputs
+    const safeSubtotal = this.safeFloat(subtotal);
+    
+    if (safeSubtotal < 0) {
+      return { 
+        error: 'Subtotal cannot be negative',
+        taxAmount: 0, 
+        taxRate: 0, 
+        taxType: 'error', 
+        breakdown: {} 
+      };
+    }
+
+    if (!this.isValidCountry(country)) {
+      return { 
+        error: `Invalid country code: ${country}. Must be 'US' or 'CA'`,
+        taxAmount: 0, 
+        taxRate: 0, 
+        taxType: 'error', 
+        breakdown: {} 
+      };
+    }
+
+    if (!this.isValidStateProvince(country, stateOrProvince)) {
+      return { 
+        error: `Invalid state/province code: ${stateOrProvince} for country ${country}`,
+        taxAmount: 0, 
+        taxRate: 0, 
+        taxType: 'error', 
+        breakdown: {},
+        validCodes: country === 'US' ? VALID_US_STATES : VALID_CA_PROVINCES
+      };
+    }
+
+    if (country === 'US') {
+      return this.calculateUSTax(safeSubtotal, stateOrProvince.toUpperCase());
+    } else if (country === 'CA') {
+      return this.calculateCanadaTax(safeSubtotal, stateOrProvince.toUpperCase());
+    }
+    
     return { taxAmount: 0, taxRate: 0, taxType: 'none', breakdown: {} };
   }
 
+  /**
+   * Calculate US sales tax
+   */
   calculateUSTax(subtotal, state) {
     const rate = TAX_RATES.US[state] || 0;
     const taxAmount = subtotal * rate;
@@ -51,16 +132,26 @@ class TaxCalculationService {
       taxRate: rate,
       taxType: 'sales_tax',
       breakdown: {
-        state_tax: taxAmount
+        state_tax: parseFloat(taxAmount.toFixed(2))
       },
-      jurisdiction: state
+      jurisdiction: state,
+      country: 'US'
     };
   }
 
+  /**
+   * Calculate Canada GST/HST/PST
+   */
   calculateCanadaTax(subtotal, province) {
     const rates = TAX_RATES.CA[province];
     if (!rates) {
-      return { taxAmount: 0, taxRate: 0, taxType: 'none', breakdown: {} };
+      return { 
+        error: `No tax rates found for province: ${province}`,
+        taxAmount: 0, 
+        taxRate: 0, 
+        taxType: 'error', 
+        breakdown: {} 
+      };
     }
 
     let breakdown = {};
@@ -68,19 +159,19 @@ class TaxCalculationService {
     let taxType = rates.type;
 
     if (rates.hst > 0) {
-      // HST provinces
+      // HST provinces (harmonized sales tax)
       totalTax = subtotal * rates.hst;
-      breakdown.hst = totalTax;
+      breakdown.hst = parseFloat(totalTax.toFixed(2));
       taxType = 'hst';
     } else {
       // GST + PST/QST provinces
       const gstAmount = subtotal * rates.gst;
-      breakdown.gst = gstAmount;
+      breakdown.gst = parseFloat(gstAmount.toFixed(2));
       totalTax += gstAmount;
 
       if (rates.pst > 0) {
         const pstAmount = subtotal * rates.pst;
-        breakdown.pst = pstAmount;
+        breakdown.pst = parseFloat(pstAmount.toFixed(2));
         totalTax += pstAmount;
         taxType = province === 'QC' ? 'gst_qst' : 'gst_pst';
       }
@@ -91,35 +182,108 @@ class TaxCalculationService {
       taxRate: parseFloat((totalTax / subtotal).toFixed(4)),
       taxType,
       breakdown,
-      jurisdiction: province
+      jurisdiction: province,
+      country: 'CA'
     };
   }
 
-  // Get tax rate for display
+  /**
+   * Get tax rate for display with validation
+   */
   getTaxRate(country, stateOrProvince) {
-    if (country === 'US') {
-      return TAX_RATES.US[stateOrProvince] || 0;
-    } else if (country === 'CA') {
-      const rates = TAX_RATES.CA[stateOrProvince];
-      if (!rates) return 0;
-      return rates.hst || (rates.gst + rates.pst);
+    if (!this.isValidCountry(country)) {
+      return { error: `Invalid country: ${country}`, rate: 0 };
     }
-    return 0;
+
+    if (!this.isValidStateProvince(country, stateOrProvince)) {
+      return { 
+        error: `Invalid state/province: ${stateOrProvince}`, 
+        rate: 0,
+        validCodes: country === 'US' ? VALID_US_STATES : VALID_CA_PROVINCES
+      };
+    }
+
+    const code = stateOrProvince.toUpperCase();
+
+    if (country === 'US') {
+      return { rate: TAX_RATES.US[code] || 0, jurisdiction: code };
+    } else if (country === 'CA') {
+      const rates = TAX_RATES.CA[code];
+      if (!rates) return { error: 'No rates found', rate: 0 };
+      const totalRate = rates.hst || (rates.gst + rates.pst);
+      return { rate: totalRate, jurisdiction: code, breakdown: rates };
+    }
+    
+    return { rate: 0 };
   }
 
-  // Calculate total from line items
+  /**
+   * Calculate total from line items with validation
+   */
   calculateInvoiceTotal(lineItems, country, stateOrProvince) {
+    if (!Array.isArray(lineItems) || lineItems.length === 0) {
+      return {
+        error: 'Line items must be a non-empty array',
+        subtotal: 0,
+        taxAmount: 0,
+        total: 0
+      };
+    }
+
     const subtotal = lineItems.reduce((sum, item) => {
-      return sum + (item.quantity * item.rate);
+      const quantity = this.safeFloat(item.quantity, 0);
+      const rate = this.safeFloat(item.rate, 0);
+      return sum + (quantity * rate);
     }, 0);
 
     const taxCalc = this.calculateInvoiceTax(subtotal, country, stateOrProvince);
+    
+    if (taxCalc.error) {
+      return {
+        error: taxCalc.error,
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        taxAmount: 0,
+        total: parseFloat(subtotal.toFixed(2)),
+        validCodes: taxCalc.validCodes
+      };
+    }
     
     return {
       subtotal: parseFloat(subtotal.toFixed(2)),
       ...taxCalc,
       total: parseFloat((subtotal + taxCalc.taxAmount).toFixed(2))
     };
+  }
+
+  /**
+   * Get all valid state/province codes for a country
+   */
+  getValidJurisdictions(country) {
+    if (country === 'US') {
+      return {
+        country: 'US',
+        jurisdictions: VALID_US_STATES.map(code => ({
+          code,
+          rate: TAX_RATES.US[code],
+          type: 'sales_tax'
+        }))
+      };
+    } else if (country === 'CA') {
+      return {
+        country: 'CA',
+        jurisdictions: VALID_CA_PROVINCES.map(code => {
+          const rates = TAX_RATES.CA[code];
+          return {
+            code,
+            rates,
+            totalRate: rates.hst || (rates.gst + rates.pst),
+            type: rates.type
+          };
+        })
+      };
+    }
+    
+    return { error: 'Invalid country', jurisdictions: [] };
   }
 }
 

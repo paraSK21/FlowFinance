@@ -27,7 +27,12 @@ exports.scanDeductions = async (req, res) => {
     // Use AI service to find potential deductions
     const potentialDeductions = await aiService.findTaxDeductions(transactions);
 
-    // Save new deductions
+    // Get user for country-specific rules
+    const user = await User.findByPk(req.userId);
+    const country = user?.taxSettings?.country || 'US';
+    const deductionRules = taxDeductionService.getDeductionRules(country);
+
+    // Save new deductions with proper validation
     const savedDeductions = [];
     for (const deduction of potentialDeductions) {
       const existing = await TaxDeduction.findOne({
@@ -39,30 +44,54 @@ exports.scanDeductions = async (req, res) => {
       });
 
       if (!existing) {
+        // Get the rule for this deduction type
+        const rule = deductionRules[deduction.deductionType];
+        if (!rule) continue;
+
         const newDeduction = await TaxDeduction.create({
           userId: req.userId,
           transactionId: deduction.transactionId,
           category: deduction.category,
-          amount: deduction.amount,
+          deductionType: deduction.deductionType,
+          amount: parseFloat(deduction.originalAmount) || 0,
+          deductiblePercentage: rule.maxPercentage,
+          actualDeductibleAmount: parseFloat(deduction.amount) || 0,
           description: deduction.description,
           date: deduction.date,
           taxYear: year,
           status: 'pending',
           aiSuggested: true,
-          aiConfidence: deduction.confidence
+          aiConfidence: parseFloat(deduction.confidence) || 0.7,
+          notes: rule.notes
         });
         savedDeductions.push(newDeduction);
       }
     }
 
+    // Calculate estimated savings using progressive tax rates
+    const yearIncome = await Transaction.sum('amount', {
+      where: {
+        userId: req.userId,
+        type: 'income',
+        date: { [Op.between]: [startDate, endDate] }
+      }
+    });
+
+    const savings = taxDeductionService.calculateEstimatedSavings(
+      savedDeductions, 
+      country, 
+      parseFloat(yearIncome) || 75000
+    );
+
     res.json({
       scanned: transactions.length,
       found: savedDeductions.length,
-      deductions: savedDeductions
+      deductions: savedDeductions,
+      estimatedSavings: savings
     });
   } catch (error) {
     console.error('Scan deductions error:', error);
-    res.status(500).json({ error: 'Failed to scan deductions' });
+    res.status(500).json({ error: 'Failed to scan deductions', message: error.message });
   }
 };
 
@@ -131,23 +160,46 @@ exports.getTaxSummary = async (req, res) => {
     });
 
     const totalDeductions = deductions.reduce((sum, d) => 
-      sum + parseFloat(d.amount || 0), 0
+      sum + (parseFloat(d.actualDeductibleAmount) || parseFloat(d.amount) || 0), 0
     );
 
     const approved = deductions.filter(d => d.status === 'approved');
     const approvedTotal = approved.reduce((sum, d) => 
-      sum + parseFloat(d.amount || 0), 0
+      sum + (parseFloat(d.actualDeductibleAmount) || parseFloat(d.amount) || 0), 0
     );
 
     const pending = deductions.filter(d => d.status === 'pending').length;
 
     const byCategory = {};
     deductions.forEach(d => {
-      if (!byCategory[d.category]) {
-        byCategory[d.category] = 0;
+      const category = d.category || 'Other';
+      if (!byCategory[category]) {
+        byCategory[category] = 0;
       }
-      byCategory[d.category] += parseFloat(d.amount || 0);
+      byCategory[category] += parseFloat(d.actualDeductibleAmount) || parseFloat(d.amount) || 0;
     });
+
+    // Get user country for progressive tax calculation
+    const user = await User.findByPk(req.userId);
+    const country = user?.taxSettings?.country || 'US';
+
+    // Get year income for accurate tax calculation
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+    const yearIncome = await Transaction.sum('amount', {
+      where: {
+        userId: req.userId,
+        type: 'income',
+        date: { [Op.between]: [startDate, endDate] }
+      }
+    });
+
+    // Calculate savings using progressive tax rates
+    const savings = taxDeductionService.calculateEstimatedSavings(
+      approved,
+      country,
+      parseFloat(yearIncome) || 75000
+    );
 
     res.json({
       taxYear: year,
@@ -155,7 +207,7 @@ exports.getTaxSummary = async (req, res) => {
       approvedTotal,
       pendingCount: pending,
       byCategory,
-      estimatedSavings: approvedTotal * 0.25 // Assuming 25% tax rate
+      ...savings
     });
   } catch (error) {
     console.error('Get tax summary error:', error);
@@ -314,9 +366,36 @@ exports.calculateInvoiceTax = async (req, res) => {
       stateOrProvince
     );
 
+    // Check for validation errors
+    if (taxCalc.error) {
+      return res.status(400).json(taxCalc);
+    }
+
     res.json(taxCalc);
   } catch (error) {
     console.error('Calculate invoice tax error:', error);
-    res.status(500).json({ error: 'Failed to calculate tax' });
+    res.status(500).json({ error: 'Failed to calculate tax', message: error.message });
+  }
+};
+
+// Get valid jurisdictions for a country
+exports.getValidJurisdictions = async (req, res) => {
+  try {
+    const { country } = req.query;
+    
+    if (!country) {
+      return res.status(400).json({ error: 'Country parameter required' });
+    }
+
+    const jurisdictions = taxCalculationService.getValidJurisdictions(country);
+    
+    if (jurisdictions.error) {
+      return res.status(400).json(jurisdictions);
+    }
+
+    res.json(jurisdictions);
+  } catch (error) {
+    console.error('Get valid jurisdictions error:', error);
+    res.status(500).json({ error: 'Failed to fetch jurisdictions' });
   }
 };

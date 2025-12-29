@@ -54,9 +54,18 @@ exports.createInvoice = async (req, res) => {
         taxState
       );
       
-      taxAmount = taxCalc.taxAmount;
-      taxRate = taxCalc.taxRate;
-      taxType = taxCalc.taxType;
+      // Check for validation errors
+      if (taxCalc.error) {
+        return res.status(400).json({ 
+          error: 'Tax calculation failed', 
+          details: taxCalc.error,
+          validCodes: taxCalc.validCodes 
+        });
+      }
+      
+      taxAmount = taxCalc.taxAmount || 0;
+      taxRate = taxCalc.taxRate || 0;
+      taxType = taxCalc.taxType || 'none';
       taxJurisdiction = taxCalc.jurisdiction;
       total = subtotal + taxAmount;
     }

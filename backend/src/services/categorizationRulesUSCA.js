@@ -23,61 +23,124 @@ module.exports = {
 
     // === MEALS & ENTERTAINMENT (50% Deductible) ===
     'Meals & Entertainment': [
-      // Fast Food Chains
+      // Fast Food Chains (US)
       'mcdonalds', "mcdonald's", 'burger king', 'wendys', "wendy's",
       'taco bell', 'kfc', 'popeyes', 'chick-fil-a', 'chickfila',
       'five guys', 'in-n-out', 'shake shack', 'chipotle',
       'panera bread', 'subway', 'jimmy johns', "jimmy john's",
       'arbys', "arby's", 'sonic drive', 'dairy queen',
+      'white castle', 'jack in the box', 'carls jr', "carl's jr",
+      'hardees', "hardee's", 'whataburger', 'culvers', "culver's",
+      'raising canes', "raising cane's", 'zaxbys', "zaxby's",
+      'del taco', 'el pollo loco', 'wingstop', 'wing stop',
+      'jersey mikes', "jersey mike's", 'firehouse subs',
+      'potbelly', 'which wich', 'blaze pizza', 'mod pizza',
+      'smashburger', 'habit burger', 'fatburger',
+      // Fast Food (Canada)
+      'tim hortons', 'tims', 'a&w', 'harveys', "harvey's",
+      'swiss chalet', 'st-hubert', 'mary browns', "mary brown's",
       // Coffee Shops
       'starbucks', 'dunkin', 'dunkin donuts', 'tim hortons',
       'peets coffee', "peet's coffee", 'caribou coffee',
       'dutch bros', 'coffee bean', 'second cup',
-      // Casual Dining
+      'philz coffee', 'blue bottle', 'intelligentsia',
+      'la colombe', 'stumptown', 'peets', 'biggby coffee',
+      // Casual Dining (US)
       'applebees', "applebee's", 'chilis', "chili's",
       'olive garden', 'red lobster', 'outback steakhouse',
       'texas roadhouse', 'buffalo wild wings', 'hooters',
       'dennys', "denny's", 'ihop', 'cracker barrel',
       'cheesecake factory', 'pf changs', "p.f. chang's",
+      'tgi fridays', "tgi friday's", 'red robin',
+      'longhorn steakhouse', 'logans roadhouse', "logan's roadhouse",
+      'bonefish grill', 'carrabbas', "carrabba's",
+      'yard house', 'california pizza kitchen', 'cpk',
+      'benihana', 'flemings', "fleming's", 'ruths chris', "ruth's chris",
+      'mortons', "morton's", 'capital grille', 'seasons 52',
+      'bahama breeze', 'maggianos', "maggiano's",
+      // Casual Dining (Canada)
+      'boston pizza', 'bp', 'east side marios', "east side mario's",
+      'the keg', 'keg steakhouse', 'milestones', 'moxies',
+      'earls', 'cactus club', 'joeys', "joey's",
       // Pizza
       'pizza hut', 'dominos', "domino's", 'papa johns', "papa john's",
       'little caesars', 'marcos pizza', "marco's pizza",
-      'pizza pizza', 'boston pizza',
+      'pizza pizza', 'boston pizza', 'papa murphys', "papa murphy's",
+      'hungry howies', "hungry howie's", 'cicis', "cici's pizza",
+      'round table', 'godfathers', "godfather's pizza",
+      'pizza nova', 'pizzaiolo', '241 pizza',
       // Food Delivery
       'doordash', 'uber eats', 'ubereats', 'grubhub',
       'postmates', 'seamless', 'skip the dishes', 'skipthedishes',
+      'instacart', 'gopuff', 'caviar', 'delivery.com',
+      // Bakery & Desserts
+      'krispy kreme', 'dunkin donuts', 'baskin robbins',
+      'cold stone', 'marble slab', 'dairy queen',
+      'carvel', 'rita\'s italian ice', 'yogurtland',
+      'pinkberry', 'red mango', 'sweetfrog', 'tcby',
+      'nothing bundt cakes', 'crumbl', 'insomnia cookies',
+      // Grocery Stores (when buying prepared food/deli)
+      'whole foods deli', 'trader joes prepared', 'wegmans cafe',
       // Restaurants (Generic)
       'restaurant', 'cafe', 'bistro', 'grill', 'diner',
-      'eatery', 'food court', 'catering'
+      'eatery', 'food court', 'catering', 'cafeteria',
+      'steakhouse', 'seafood', 'sushi bar', 'buffet'
     ],
 
     // === OFFICE SUPPLIES ===
     'Office Supplies': [
+      // Office Supply Stores (US)
       'staples', 'office depot', 'officedepot', 'officemax',
-      'grand & toy', 'bureau en gros',
       'amazon - office', 'amazon office', 'amazon.com office',
-      'uline', 'quill', 'viking office',
-      'paper source', 'fedex office', 'ups store',
-      'kinkos', "kinko's", 'print shop', 'copy center'
+      'uline', 'quill', 'viking office', 'w.b. mason',
+      'paper source', 'container store',
+      // Office Supply Stores (Canada)
+      'grand & toy', 'bureau en gros', 'staples canada',
+      // Print & Copy Services
+      'fedex office', 'ups store', 'kinkos', "kinko's",
+      'print shop', 'copy center', 'vistaprint', 'moo',
+      'overnight prints', 'gotprint', 'printful', 'printify',
+      // Shipping Supplies
+      'uline', 'packagingsupplies', 'uhaul boxes',
+      // Furniture (Office)
+      'ikea office', 'wayfair office', 'herman miller',
+      'steelcase', 'hon', 'haworth', 'knoll'
     ],
 
     // === MARKETING & ADVERTISING ===
     'Marketing': [
-      // Digital Advertising
+      // Digital Advertising Platforms
       'google ads', 'google adwords', 'google advertising',
       'facebook ads', 'meta ads', 'instagram ads',
       'linkedin ads', 'linkedin advertising',
       'twitter ads', 'x ads', 'tiktok ads',
       'pinterest ads', 'snapchat ads', 'reddit ads',
-      'microsoft advertising', 'bing ads',
-      // Marketing Tools
-      'mailchimp', 'constant contact', 'hubspot',
-      'hootsuite', 'buffer', 'sprout social',
-      'canva', 'adobe creative', 'semrush',
-      'moz', 'ahrefs', 'google analytics',
+      'microsoft advertising', 'bing ads', 'amazon ads',
+      'youtube ads', 'quora ads', 'taboola', 'outbrain',
+      // Email Marketing
+      'mailchimp', 'constant contact', 'sendinblue',
+      'convertkit', 'activecampaign', 'aweber',
+      'klaviyo', 'drip', 'getresponse', 'mailerlite',
+      // Social Media Management
+      'hootsuite', 'buffer', 'sprout social', 'later',
+      'planoly', 'socialbee', 'agorapulse', 'sendible',
+      // SEO & Analytics Tools
+      'semrush', 'moz', 'ahrefs', 'google analytics',
+      'similarweb', 'spyfu', 'majestic', 'screaming frog',
+      'ubersuggest', 'serpstat',
+      // Design & Creative Tools
+      'canva', 'canva pro', 'adobe creative', 'figma',
+      'sketch', 'invision', 'crello', 'visme',
+      'piktochart', 'snappa', 'placeit', 'renderforest',
+      // Marketing Automation
+      'hubspot', 'marketo', 'pardot', 'eloqua',
+      'autopilot', 'customer.io', 'intercom',
+      // Advertising Agencies
+      'marketing agency', 'ad agency', 'creative agency',
+      'digital agency', 'media buying',
       // Traditional Advertising
       'billboard', 'radio ad', 'tv ad', 'newspaper ad',
-      'magazine ad', 'direct mail', 'print ad'
+      'magazine ad', 'direct mail', 'print ad', 'outdoor advertising'
     ],
 
     // === UTILITIES ===
@@ -111,84 +174,218 @@ module.exports = {
 
     // === TRAVEL ===
     'Travel': [
-      // Ride Sharing
-      'uber', 'lyft', 'via', 'curb taxi',
-      // Airlines (US)
-      'american airlines', 'delta', 'united airlines',
-      'southwest', 'jetblue', 'alaska airlines',
+      // Ride Sharing & Taxis
+      'uber', 'uber trip', 'uber ride', 'lyft', 'via', 'curb taxi',
+      'taxi', 'cab', 'yellow cab', 'checker cab',
+      'waymo', 'cruise', 'gett', 'juno',
+      // Airlines (US Major)
+      'american airlines', 'aa', 'delta', 'delta air lines',
+      'united airlines', 'united', 'southwest', 'southwest airlines',
+      'jetblue', 'alaska airlines', 'hawaiian airlines',
+      // Airlines (US Budget)
       'spirit airlines', 'frontier airlines', 'allegiant',
+      'sun country', 'avelo', 'breeze airways',
       // Airlines (Canada)
       'air canada', 'westjet', 'porter airlines',
-      'air transat', 'flair airlines',
-      // Hotels
+      'air transat', 'flair airlines', 'swoop',
+      // Airlines (International operating in US/CA)
+      'british airways', 'lufthansa', 'air france',
+      'klm', 'emirates', 'qatar airways', 'etihad',
+      // Hotels (Major Chains)
       'marriott', 'hilton', 'hyatt', 'ihg', 'intercontinental',
-      'holiday inn', 'best western', 'comfort inn',
+      'holiday inn', 'holiday inn express', 'crowne plaza',
+      'best western', 'comfort inn', 'comfort suites',
+      'quality inn', 'sleep inn', 'clarion',
       'la quinta', 'motel 6', 'super 8', 'days inn',
       'hampton inn', 'courtyard', 'residence inn',
-      'fairmont', 'four seasons', 'sheraton',
-      // Booking Sites
+      'fairfield inn', 'springhill suites', 'towneplace',
+      'homewood suites', 'home2 suites', 'embassy suites',
+      'doubletree', 'waldorf astoria', 'conrad',
+      'fairmont', 'four seasons', 'sheraton', 'westin',
+      'w hotel', 'st regis', 'luxury collection',
+      'aloft', 'element', 'moxy', 'ac hotel',
+      'radisson', 'ramada', 'wyndham', 'travelodge',
+      'red roof inn', 'extended stay', 'candlewood',
+      // Hotels (Canada)
+      'delta hotels', 'sandman', 'coast hotels',
+      // Booking Sites & Travel Agencies
       'expedia', 'booking.com', 'hotels.com', 'priceline',
       'kayak', 'orbitz', 'travelocity', 'hotwire',
-      'airbnb', 'vrbo', 'homeaway',
+      'cheapoair', 'onetravel', 'tripadvisor',
+      'airbnb', 'vrbo', 'homeaway', 'vacasa',
       // Car Rental
       'enterprise', 'hertz', 'avis', 'budget',
       'national car', 'alamo', 'thrifty', 'dollar rent',
-      // Gas Stations
+      'sixt', 'payless', 'advantage', 'fox rent a car',
+      'zipcar', 'turo', 'getaround',
+      // Gas Stations (US)
       'shell', 'chevron', 'exxon', 'mobil', 'bp',
       'texaco', 'arco', 'sunoco', '76', 'circle k',
-      'petro-canada', 'esso', 'husky', 'canadian tire gas',
+      'speedway', 'marathon', 'valero', 'phillips 66',
+      'conoco', 'citgo', 'gulf', 'hess', 'racetrac',
+      'wawa', 'sheetz', 'kwik trip', 'casey\'s',
+      'maverik', 'loves', 'pilot', 'flying j',
+      // Gas Stations (Canada)
+      'petro-canada', 'esso', 'husky', 'shell canada',
+      'canadian tire gas', 'ultramar', 'fas gas',
+      'co-op gas', 'mohawk', 'pioneer',
       // Parking & Tolls
-      'parking', 'parkade', 'park n fly',
-      'toll', 'ez pass', 'fastrak', '407 etr',
-      // Rail/Bus
+      'parking', 'parkade', 'park n fly', 'park \'n fly',
+      'spothero', 'parkwhiz', 'bestparking',
+      'toll', 'ez pass', 'ezpass', 'fastrak', 'sunpass',
+      '407 etr', 'ipass', 'txtag', 'peach pass',
+      // Public Transit
       'amtrak', 'via rail', 'greyhound', 'megabus',
-      'bolt bus', 'go transit', 'ttc', 'metro'
+      'bolt bus', 'flixbus', 'peter pan',
+      // Local Transit (US)
+      'metro', 'mta', 'bart', 'caltrain', 'metra',
+      'septa', 'wmata', 'marta', 'trimet',
+      'rtd', 'metro transit', 'king county metro',
+      // Local Transit (Canada)
+      'go transit', 'ttc', 'stm', 'translink',
+      'oc transpo', 'calgary transit', 'edmonton transit',
+      // Travel Services
+      'tsa precheck', 'global entry', 'clear',
+      'lounge pass', 'priority pass'
     ],
 
     // === OPERATIONS / GENERAL BUSINESS ===
     'Operations': [
-      // Retail (General Supplies)
+      // Retail (General Supplies - US)
       'walmart', 'target', 'costco', 'sams club', "sam's club",
       'bjs wholesale', "bj's wholesale",
-      'canadian tire', 'home hardware', 'rona', 'lowes', "lowe's",
-      'home depot', 'menards', 'ace hardware',
+      'home depot', 'lowes', "lowe's", 'menards',
+      'ace hardware', 'true value', 'do it best',
+      'harbor freight', 'northern tool', 'tractor supply',
+      'rural king', 'fleet farm', 'blain\'s farm',
+      // Retail (Canada)
+      'canadian tire', 'home hardware', 'rona',
+      'princess auto', 'kent building supplies',
+      'timber mart', 'castle building centres',
+      // Grocery/Wholesale (for business supplies)
+      'costco business', 'restaurant depot',
+      'cash and carry', 'smart foodservice',
       // E-commerce
       'amazon', 'amazon.com', 'amazon.ca', 'amazon prime',
-      'ebay', 'etsy', 'alibaba', 'aliexpress',
+      'amazon business', 'ebay', 'etsy', 'newegg',
+      'alibaba', 'aliexpress', 'dhgate', 'banggood',
+      'overstock', 'wayfair', 'chewy',
+      // Electronics & Tech Supplies
+      'best buy', 'microcenter', 'micro center',
+      'frys electronics', "fry's", 'b&h photo',
+      'adorama', 'newegg', 'tigerdirect',
+      'canada computers', 'memory express',
+      'sparkfun', 'adafruit', 'digikey', 'mouser',
+      'newark', 'arrow electronics', 'avnet',
       // Shipping & Logistics
       'fedex', 'ups', 'usps', 'dhl', 'canada post',
-      'purolator', 'canpar',
+      'purolator', 'canpar', 'loomis', 'gls',
+      'ontrac', 'lasership', 'amazon logistics',
+      // Payment Processing Fees
+      'stripe fee', 'paypal fee', 'square fee',
+      'shopify fee', 'payment processing',
       // Credit Card Payments
       'credit card payment', 'visa payment', 'mastercard payment',
-      'amex payment', 'discover payment',
+      'amex payment', 'discover payment', 'cc payment',
       // Bank Fees
       'bank fee', 'service charge', 'monthly fee',
       'overdraft fee', 'wire fee', 'atm fee',
+      'nsf fee', 'returned item', 'maintenance fee',
       // Equipment & Maintenance
       'maintenance', 'repair', 'equipment', 'machinery',
-      'tools', 'hardware', 'supplies'
+      'tools', 'hardware', 'supplies', 'parts',
+      'grainger', 'fastenal', 'msc industrial',
+      'zoro', 'global industrial', 'webstaurant',
+      // Janitorial & Cleaning
+      'cleaning supplies', 'janitorial', 'sanitizer',
+      'paper towels', 'toilet paper', 'soap',
+      // Safety Equipment
+      'safety equipment', 'ppe', 'first aid',
+      'fire extinguisher', 'safety gear'
     ],
 
     // === SOFTWARE & SUBSCRIPTIONS ===
     'Software': [
-      // Business Software
+      // Productivity Suites
       'microsoft 365', 'office 365', 'microsoft office',
       'google workspace', 'g suite', 'gsuite',
+      'apple icloud', 'icloud+', 'icloud storage',
+      // Communication & Collaboration
+      'slack', 'slack technologies', 'zoom', 'zoom.us',
+      'microsoft teams', 'google meet', 'webex', 'cisco webex',
+      'goto meeting', 'gotomeeting', 'ringcentral',
+      'dialpad', '8x8', 'vonage', 'nextiva',
+      'discord nitro', 'telegram premium',
+      // Project Management
+      'asana', 'trello', 'monday.com', 'clickup',
+      'basecamp', 'wrike', 'smartsheet', 'airtable',
+      'notion', 'coda', 'confluence', 'jira',
+      // CRM & Sales
+      'salesforce', 'hubspot', 'zoho', 'zoho crm',
+      'pipedrive', 'freshsales', 'close', 'copper',
+      'insightly', 'nimble', 'agile crm',
+      // Accounting & Finance
+      'quickbooks', 'quickbooks online', 'xero', 'freshbooks',
+      'wave', 'sage', 'netsuite', 'bill.com',
+      'expensify', 'concur', 'ramp', 'brex',
+      'divvy', 'airbase', 'tipalti',
+      // Design & Creative
       'adobe', 'adobe creative cloud', 'adobe acrobat',
-      'salesforce', 'hubspot', 'zoho',
-      'quickbooks', 'xero', 'freshbooks', 'wave',
-      'slack', 'zoom', 'microsoft teams',
-      'dropbox', 'box', 'google drive',
-      'github', 'gitlab', 'bitbucket',
-      'aws', 'amazon web services', 'azure', 'google cloud',
-      'heroku', 'digitalocean', 'linode',
+      'figma', 'sketch', 'invision', 'framer',
+      'canva pro', 'affinity', 'corel',
+      // Cloud Storage
+      'dropbox', 'dropbox business', 'box', 'box.com',
+      'google drive', 'google one', 'onedrive',
+      'sync.com', 'pcloud', 'icedrive', 'backblaze',
+      // Development & DevOps
+      'github', 'gitlab', 'bitbucket', 'circleci',
+      'travis ci', 'jenkins', 'datadog', 'new relic',
+      'sentry', 'bugsnag', 'rollbar', 'pagerduty',
+      'opsgenie', 'statuspage', 'pingdom',
+      // Cloud Infrastructure
+      'aws', 'amazon web services', 'azure', 'microsoft azure',
+      'google cloud', 'gcp', 'heroku', 'digitalocean',
+      'linode', 'vultr', 'cloudflare', 'fastly',
+      'vercel', 'netlify', 'render', 'railway',
       // Domain & Hosting
       'godaddy', 'namecheap', 'bluehost', 'hostgator',
-      'siteground', 'dreamhost', 'squarespace', 'wix',
-      'wordpress', 'shopify',
-      // Security & Tools
+      'siteground', 'dreamhost', 'a2 hosting',
+      'inmotion', 'hostinger', 'ionos',
+      // Website Builders
+      'squarespace', 'wix', 'weebly', 'webflow',
+      'wordpress', 'wordpress.com', 'shopify',
+      'bigcommerce', 'woocommerce',
+      // Security & Password Management
       'norton', 'mcafee', 'kaspersky', 'malwarebytes',
-      'lastpass', '1password', 'dashlane'
+      'bitdefender', 'avast', 'avg', 'eset',
+      'lastpass', '1password', 'dashlane', 'bitwarden',
+      'keeper', 'nordpass', 'roboform',
+      // VPN & Privacy
+      'nordvpn', 'expressvpn', 'surfshark', 'cyberghost',
+      'private internet access', 'pia', 'protonvpn',
+      'tunnelbear', 'windscribe', 'mullvad',
+      // Email Services
+      'gsuite', 'microsoft exchange', 'protonmail',
+      'fastmail', 'zoho mail', 'rackspace email',
+      // Analytics & SEO
+      'google analytics', 'mixpanel', 'amplitude',
+      'heap', 'segment', 'hotjar', 'fullstory',
+      'semrush', 'ahrefs', 'moz', 'screaming frog',
+      // Customer Support
+      'zendesk', 'intercom', 'freshdesk', 'help scout',
+      'drift', 'crisp', 'livechat', 'olark',
+      'tawk.to', 'tidio', 'gorgias',
+      // HR & Recruiting
+      'bamboohr', 'gusto', 'rippling', 'namely',
+      'workday', 'adp', 'paychex', 'zenefits',
+      'greenhouse', 'lever', 'jobvite', 'workable',
+      // Learning & Training
+      'linkedin learning', 'udemy business', 'coursera',
+      'pluralsight', 'skillshare', 'masterclass',
+      // Other SaaS
+      'calendly', 'acuity', 'typeform', 'surveymonkey',
+      'mailchimp', 'sendgrid', 'twilio', 'zapier',
+      'ifttt', 'make', 'integromat', 'n8n'
     ],
 
     // === PROFESSIONAL SERVICES ===
@@ -250,7 +447,9 @@ module.exports = {
       'invoice paid', 'customer payment', 'client payment',
       'sales', 'income', 'revenue', 'earnings',
       'salary credit', 'payroll deposit', 'direct deposit',
-      'ach credit', 'wire in', 'transfer from'
+      'ach credit', 'wire in', 'transfer from',
+      'refund received', 'reimbursement', 'commission received',
+      'royalty', 'dividend', 'interest income'
     ],
 
     'Meals & Entertainment': [
@@ -258,14 +457,21 @@ module.exports = {
       'grill', 'bar', 'pub', 'tavern', 'eatery',
       'food', 'meal', 'lunch', 'dinner', 'breakfast',
       'pizza', 'burger', 'sandwich', 'sushi', 'taco',
-      'catering', 'delivery', 'takeout', 'drive-thru'
+      'catering', 'delivery', 'takeout', 'drive-thru',
+      'bakery', 'dessert', 'ice cream', 'donut',
+      'fast food', 'quick service', 'food truck',
+      'buffet', 'brunch', 'appetizer', 'entree'
     ],
 
     'Office Supplies': [
       'office supply', 'stationery', 'paper', 'pens',
       'printer', 'ink', 'toner', 'desk', 'chair',
       'filing', 'folder', 'binder', 'notebook',
-      'stapler', 'tape', 'scissors', 'calculator'
+      'stapler', 'tape', 'scissors', 'calculator',
+      'whiteboard', 'marker', 'highlighter', 'post-it',
+      'envelope', 'label', 'clipboard', 'organizer',
+      'desk pad', 'mouse pad', 'keyboard', 'monitor',
+      'office furniture', 'filing cabinet', 'bookshelf'
     ],
 
     'Marketing': [
@@ -273,7 +479,11 @@ module.exports = {
       'ad spend', 'google ads', 'facebook ads', 'social media',
       'seo', 'sem', 'ppc', 'email marketing',
       'content marketing', 'influencer', 'sponsorship',
-      'billboard', 'radio ad', 'tv ad', 'print ad'
+      'billboard', 'radio ad', 'tv ad', 'print ad',
+      'digital marketing', 'brand', 'branding',
+      'lead generation', 'conversion', 'analytics',
+      'retargeting', 'remarketing', 'display ad',
+      'video ad', 'native ad', 'affiliate marketing'
     ],
 
     'Utilities': [
@@ -281,7 +491,9 @@ module.exports = {
       'gas', 'water', 'sewer', 'trash', 'waste',
       'internet', 'phone', 'mobile', 'cell', 'wireless',
       'cable', 'satellite', 'broadband', 'wifi',
-      'utility', 'telecom', 'communication'
+      'utility', 'telecom', 'communication',
+      'heating', 'cooling', 'hvac', 'energy',
+      'recycling', 'garbage', 'sanitation'
     ],
 
     'Travel': [
@@ -290,7 +502,9 @@ module.exports = {
       'rental car', 'car rental', 'uber', 'lyft', 'taxi',
       'parking', 'toll', 'gas station', 'fuel',
       'train', 'rail', 'bus', 'transit',
-      'travel', 'trip', 'business travel'
+      'travel', 'trip', 'business travel',
+      'mileage', 'per diem', 'baggage', 'luggage',
+      'conference travel', 'airbnb', 'vacation rental'
     ],
 
     'Operations': [
@@ -298,14 +512,20 @@ module.exports = {
       'maintenance', 'repair', 'service', 'parts',
       'shipping', 'freight', 'delivery', 'courier',
       'bank fee', 'service charge', 'transaction fee',
-      'credit card payment', 'loan payment'
+      'credit card payment', 'loan payment',
+      'inventory', 'wholesale', 'bulk purchase',
+      'packaging', 'materials', 'components',
+      'merchant fee', 'processing fee', 'atm fee'
     ],
 
     'Software': [
       'software', 'subscription', 'saas', 'cloud',
       'hosting', 'domain', 'website', 'app',
       'license', 'microsoft', 'adobe', 'google',
-      'aws', 'azure', 'dropbox', 'slack', 'zoom'
+      'aws', 'azure', 'dropbox', 'slack', 'zoom',
+      'api', 'platform', 'service', 'tool',
+      'crm', 'erp', 'analytics', 'automation',
+      'integration', 'plugin', 'extension', 'add-on'
     ],
 
     'Professional Services': [
@@ -313,32 +533,45 @@ module.exports = {
       'accounting', 'accountant', 'cpa', 'bookkeeping',
       'consulting', 'consultant', 'advisory',
       'freelance', 'contractor', 'agency',
-      'professional fee', 'service fee'
+      'professional fee', 'service fee',
+      'audit', 'tax preparation', 'financial advisor',
+      'business coach', 'mentor', 'expert',
+      'architect', 'engineer', 'designer'
     ],
 
     'Payroll': [
       'payroll', 'salary', 'wages', 'employee',
       'staff', 'paycheck', 'compensation',
-      'bonus', 'commission', 'overtime'
+      'bonus', 'commission', 'overtime',
+      'benefits', 'health insurance', '401k',
+      'retirement', 'fica', 'withholding',
+      'garnishment', 'direct deposit', 'pay stub'
     ],
 
     'Rent': [
       'rent', 'lease', 'landlord', 'property',
       'office space', 'warehouse', 'retail space',
-      'commercial', 'coworking'
+      'commercial', 'coworking', 'storage',
+      'facility', 'building', 'premises',
+      'real estate', 'property management'
     ],
 
     'Insurance': [
       'insurance', 'premium', 'policy', 'coverage',
       'liability', 'workers comp', 'health insurance',
-      'business insurance', 'auto insurance'
+      'business insurance', 'auto insurance',
+      'property insurance', 'general liability',
+      'professional liability', 'e&o', 'umbrella',
+      'cyber insurance', 'data breach', 'bonding'
     ],
 
     'Taxes': [
       'tax', 'irs', 'cra', 'federal tax', 'state tax',
       'sales tax', 'gst', 'hst', 'pst', 'vat',
       'income tax', 'payroll tax', 'property tax',
-      'estimated tax', 'quarterly tax'
+      'estimated tax', 'quarterly tax',
+      'franchise tax', 'excise tax', 'use tax',
+      'tax filing', 'tax payment', 'tax penalty'
     ]
   },
 

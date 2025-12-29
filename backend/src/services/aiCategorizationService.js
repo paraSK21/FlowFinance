@@ -166,8 +166,8 @@ class AICategorizationService {
       const normalizedDesc = (description || '').toLowerCase().trim();
       const normalizedMerchant = (merchantName || '').toLowerCase().trim();
       
-      // Parse UPI/IMPS/NEFT narrations to extract merchant tokens
-      const parsedData = this.parseIndianPaymentNarration(normalizedDesc, normalizedMerchant);
+      // Extract merchant tokens from description and merchant name
+      const parsedData = this.parsePaymentNarration(normalizedDesc, normalizedMerchant);
       const merchantTokens = parsedData.merchantTokens;
       const cleanNarration = parsedData.cleanNarration;
 
@@ -220,45 +220,29 @@ class AICategorizationService {
   }
 
   /**
-   * Parse Indian UPI/IMPS/NEFT narrations to extract merchant info
-   * Example: "UPI/34345345/LENOVO_STORE@icici/LENOVO DLR" -> ["lenovo", "lenovo_store"]
+   * Parse payment narration to extract merchant info for US/Canada transactions
+   * Example: "STARBUCKS STORE #1234 SEATTLE WA" -> ["starbucks", "store", "seattle"]
    */
-  parseIndianPaymentNarration(description, merchantName) {
+  parsePaymentNarration(description, merchantName) {
     const tokens = new Set();
     const combined = `${description} ${merchantName}`;
     
-    // Extract UPI VPA handles (e.g., LENOVO_STORE@icici)
-    const vpaMatch = combined.match(/([a-z0-9_]+)@[a-z]+/gi);
-    if (vpaMatch) {
-      vpaMatch.forEach(vpa => {
-        const handle = vpa.split('@')[0].toLowerCase();
-        tokens.add(handle);
-        // Also add individual words from underscore-separated handles
-        handle.split('_').forEach(part => {
-          if (part.length > 2) tokens.add(part);
-        });
-      });
-    }
-
-    // Extract merchant-like tokens from UPI narration (between slashes)
-    const upiParts = combined.split('/');
-    upiParts.forEach(part => {
-      const cleaned = part.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
-      cleaned.split(/\s+/).forEach(word => {
-        if (word.length > 3 && !this.isNoiseWord(word)) {
-          tokens.add(word);
-        }
-      });
+    // Clean and extract meaningful tokens
+    const cleaned = combined
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Extract words longer than 2 characters
+    cleaned.split(/\s+/).forEach(word => {
+      if (word.length > 2 && !this.isNoiseWord(word)) {
+        tokens.add(word);
+      }
     });
 
     // Clean narration for keyword matching
-    const cleanNarration = combined
-      .replace(/upi\/\d+\//gi, '')
-      .replace(/imps\/\d+\//gi, '')
-      .replace(/neft\/\d+\//gi, '')
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .toLowerCase()
-      .trim();
+    const cleanNarration = cleaned;
 
     return {
       merchantTokens: Array.from(tokens),
@@ -267,7 +251,9 @@ class AICategorizationService {
   }
 
   isNoiseWord(word) {
-    const noise = ['upi', 'imps', 'neft', 'rtgs', 'payment', 'transfer', 'from', 'to', 'via'];
+    const noise = ['the', 'and', 'for', 'inc', 'llc', 'ltd', 'corp', 'company', 
+                   'payment', 'transfer', 'from', 'via', 'pos', 'debit', 'credit',
+                   'purchase', 'sale', 'store', 'shop', 'online'];
     return noise.includes(word);
   }
 
@@ -335,6 +321,10 @@ class AICategorizationService {
         const inNarration = text.includes(merchantLower);
         
         if (hasExactMatch || inNarration) {
+          // CRITICAL: Never categorize expenses as Revenue
+          if (category === 'Revenue' && transactionType === 'expense') {
+            continue; // Skip this match, try other categories
+          }
           return { category, confidence: 0.92, method: 'rule_based', matchedMerchant: merchant };
         }
       }
@@ -379,6 +369,12 @@ class AICategorizationService {
     }
 
     if (maxMatches > 0) {
+      // CRITICAL: Never categorize expenses as Revenue
+      if (matchedCategory === 'Revenue' && transactionType === 'expense') {
+        matchedCategory = 'Other';
+        maxMatches = 0;
+      }
+      
       // Single strong match is enough for high confidence
       const confidence = maxMatches >= 2 
         ? Math.min(0.88 + (maxMatches * 0.02), 0.95)
@@ -396,10 +392,16 @@ class AICategorizationService {
       }
 
       // Credits from payment gateways, customers, or salary -> Revenue
+      // CRITICAL: Only categorize as Revenue if it's actually income (positive money in)
       if (transactionType === 'income') {
         if (text.match(/payout|settlement|stripe|square|paypal|customer|salary credit|sal credit|credited by|transfer from|deposit/)) {
           bestMatch = { category: 'Revenue', confidence: 0.88, method: 'rule_based' };
         }
+      }
+      
+      // CRITICAL: Never categorize expenses as Revenue, even if keywords match
+      if (transactionType === 'expense' && bestMatch.category === 'Revenue') {
+        bestMatch = { category: 'Other', confidence: 0.4, method: 'rule_based' };
       }
 
       // Monthly recurring patterns (detected by amount similarity in future iterations)
@@ -468,6 +470,12 @@ US/Canada Business Context Rules:
 - Stationery/Office items = Office Supplies
 - CA/Legal/Consulting = Professional Services
 - Electricity/Power Bill = Utilities
+
+CRITICAL RULES:
+- If amount is NEGATIVE (money going out), NEVER categorize as Revenue
+- Revenue is ONLY for positive amounts (money coming in)
+- Uber/Lyft/Taxi = Travel (NOT Meals & Entertainment)
+- SparkFun/electronics suppliers = Operations (NOT Revenue)
 
 Respond in this EXACT format:
 Category: [category name]
@@ -635,7 +643,7 @@ Confidence: [0.XX]`;
       const { description, merchantName, amount } = transaction;
       
       // Parse to get merchant tokens
-      const parsedData = this.parseIndianPaymentNarration(
+      const parsedData = this.parsePaymentNarration(
         description || '', 
         merchantName || ''
       );
@@ -813,71 +821,12 @@ Confidence: [0.XX]`;
   }
 
   /**
-   * Generate cash flow forecast based on historical patterns with ML enhancement
+   * DEPRECATED: Use improvedForecastService.v2.js instead
+   * This method is kept for backward compatibility but should not be used
    */
   async generateForecast(transactions, currentBalance, days = 90, useML = true) {
-    try {
-      // Analyze historical patterns
-      const analysis = this.analyzeTransactionPatterns(transactions);
-      
-      // Try ML-enhanced forecast first if enabled and Gemini is available
-      let mlInsights = null;
-      if (useML && this.geminiModel && transactions.length >= 10) {
-        // Check if we have enough API quota before using ML
-        const hasQuota = this.checkAPIQuota();
-        
-        if (hasQuota) {
-          try {
-            mlInsights = await this.getMLForecastInsights(transactions, analysis, days);
-            console.log('✓ ML insights generated for forecast enhancement');
-          } catch (mlError) {
-            console.warn('ML forecast insights failed, using statistical method:', mlError.message);
-          }
-        } else {
-          console.warn('⚠️ API quota low, skipping ML enhancement to preserve quota for categorization');
-        }
-      }
-      
-      // Generate daily forecasts
-      const forecasts = [];
-      let runningBalance = currentBalance;
-
-      for (let i = 1; i <= days; i++) {
-        const forecastDate = new Date();
-        forecastDate.setDate(forecastDate.getDate() + i);
-
-        // Predict cash flow for this day (statistical method)
-        const prediction = this.predictDailyCashFlow(
-          forecastDate,
-          analysis,
-          transactions
-        );
-
-        // Apply ML adjustments if available
-        if (mlInsights) {
-          prediction.income *= mlInsights.incomeMultiplier;
-          prediction.expenses *= mlInsights.expenseMultiplier;
-          prediction.confidence = Math.min(0.95, prediction.confidence * mlInsights.confidenceBoost);
-          prediction.netCashFlow = prediction.income - prediction.expenses;
-        }
-
-        runningBalance += prediction.netCashFlow;
-
-        forecasts.push({
-          date: forecastDate,
-          predictedBalance: runningBalance,
-          projectedIncome: prediction.income,
-          projectedExpenses: prediction.expenses,
-          confidence: prediction.confidence,
-          method: mlInsights ? 'ml_enhanced' : 'statistical'
-        });
-      }
-
-      return forecasts;
-    } catch (error) {
-      console.error('Forecast generation error:', error);
-      throw error;
-    }
+    console.warn('⚠️ aiCategorizationService.generateForecast() is deprecated. Use improvedForecastService.v2 instead.');
+    throw new Error('This forecast method is deprecated. Please use improvedForecastService.v2.generateForecast() instead.');
   }
 
   /**
@@ -1207,7 +1156,7 @@ Rules:
     avgIncome *= (1 + trend.incomeTrend);
     avgExpenses *= (1 + trend.expenseTrend);
 
-    // IMPROVEMENT 3: Use weighted variance based on historical volatility
+    // IMPROVEMENT 3: Calculate variance based on historical volatility (deterministic)
     // Prefer month patterns for volatility if available
     const incomeData = monthPatterns.income.length > 0 ? monthPatterns.income : weekPatterns.income;
     const expenseData = monthPatterns.expenses.length > 0 ? monthPatterns.expenses : weekPatterns.expenses;
@@ -1215,8 +1164,9 @@ Rules:
     const incomeVolatility = this.calculateVolatility(incomeData);
     const expenseVolatility = this.calculateVolatility(expenseData);
     
-    const income = avgIncome * (1 + (Math.random() - 0.5) * incomeVolatility);
-    const expenses = avgExpenses * (1 + (Math.random() - 0.5) * expenseVolatility);
+    // Use deterministic values (no randomness) - use the average directly
+    const income = avgIncome;
+    const expenses = avgExpenses;
 
     // IMPROVEMENT 4: Better confidence calculation
     const weekDataPoints = weekPatterns.income.length + weekPatterns.expenses.length;
@@ -1289,20 +1239,23 @@ Rules:
   }
 
   /**
-   * Find potential tax deductions from transactions
+   * Find potential tax deductions from transactions with proper validation
    */
   async findTaxDeductions(transactions) {
     const potentialDeductions = [];
     
     const deductibleCategories = {
-      'Meals & Entertainment': { rate: 0.5, description: '50% deductible business meals' },
-      'Operations': { rate: 1.0, description: '100% deductible operating expenses' },
-      'Marketing': { rate: 1.0, description: '100% deductible advertising' },
-      'Utilities': { rate: 1.0, description: '100% deductible utilities' },
-      'Office Supplies': { rate: 1.0, description: '100% deductible supplies' },
-      'Travel': { rate: 1.0, description: '100% deductible business travel' },
-      'Professional Services': { rate: 1.0, description: '100% deductible professional fees' },
-      'Insurance': { rate: 1.0, description: '100% deductible business insurance' }
+      'Meals & Entertainment': { rate: 0.5, description: '50% deductible business meals', type: 'meals' },
+      'Operations': { rate: 1.0, description: '100% deductible operating expenses', type: 'equipment' },
+      'Marketing': { rate: 1.0, description: '100% deductible advertising', type: 'advertising' },
+      'Utilities': { rate: 1.0, description: '100% deductible utilities', type: 'utilities' },
+      'Office Supplies': { rate: 1.0, description: '100% deductible supplies', type: 'supplies' },
+      'Travel': { rate: 1.0, description: '100% deductible business travel', type: 'travel' },
+      'Professional Services': { rate: 1.0, description: '100% deductible professional fees', type: 'professional_fees' },
+      'Insurance': { rate: 1.0, description: '100% deductible business insurance', type: 'insurance' },
+      'Rent': { rate: 1.0, description: '100% deductible rent', type: 'rent' },
+      'Payroll': { rate: 1.0, description: '100% deductible payroll', type: 'payroll' },
+      'Software': { rate: 1.0, description: '100% deductible software', type: 'software' }
     };
 
     transactions.forEach(txn => {
@@ -1310,16 +1263,18 @@ Rules:
       
       if (deductibleCategories[category] && txn.type === 'expense') {
         const deduction = deductibleCategories[category];
-        const deductibleAmount = parseFloat(txn.amount) * deduction.rate;
+        const amount = Math.abs(parseFloat(txn.amount) || 0);
+        const deductibleAmount = amount * deduction.rate;
 
         potentialDeductions.push({
           transactionId: txn.id,
           category,
+          deductionType: deduction.type,
           amount: deductibleAmount,
-          originalAmount: txn.amount,
-          description: `${txn.description} - ${deduction.description}`,
+          originalAmount: amount,
+          description: `${txn.description || txn.merchantName || 'Transaction'} - ${deduction.description}`,
           date: txn.date,
-          confidence: txn.aiCategoryConfidence || 0.7
+          confidence: parseFloat(txn.aiCategoryConfidence) || 0.7
         });
       }
     });

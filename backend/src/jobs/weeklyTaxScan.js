@@ -1,4 +1,3 @@
-// Weekly Tax Deduction Scanner Job
 const { User } = require('../models');
 const taxDeductionService = require('../services/taxDeductionService');
 const emailService = require('../services/emailService');

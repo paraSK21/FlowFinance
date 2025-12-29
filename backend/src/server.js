@@ -88,14 +88,16 @@ const socketService = require('./socket');
 // Database sync and server start
 const syncOptions = process.env.NODE_ENV === 'production' 
   ? { alter: false } // Never alter in production - use migrations
-  : { alter: true };  // OK in development
+  : { alter: false };  // Changed to false for faster startup
 
 db.sequelize.sync(syncOptions).then(async () => {
-  console.log('Database tables synced successfully');
+  console.log('Database connection established');
   
   const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`✓ Server running on port ${PORT}`);
+    console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`✓ Backend URL: ${process.env.BACKEND_URL || `http://localhost:${PORT}`}`);
+    console.log(`✓ Frontend URL: ${process.env.FRONTEND_URL}`);
     
     // Initialize WebSocket
     socketService.initialize(server);

@@ -77,6 +77,7 @@ router.get('/tax/deduction-rules', authenticate, checkSubscription, taxControlle
 router.get('/tax/settings', authenticate, checkSubscription, taxController.getTaxSettings);
 router.put('/tax/settings', authenticate, checkSubscription, taxController.updateTaxSettings);
 router.post('/tax/calculate-invoice-tax', authenticate, checkSubscription, taxController.calculateInvoiceTax);
+router.get('/tax/jurisdictions', authenticate, checkSubscription, taxController.getValidJurisdictions);
 router.post('/tax/scan-receipt', authenticate, checkSubscription, upload.single('receipt'), taxController.scanReceipt);
 
 // Profit First routes
