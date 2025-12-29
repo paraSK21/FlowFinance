@@ -13,7 +13,7 @@ function PlaidLink({ onSuccess, onExit }) {
 
   const createLinkToken = async () => {
     try {
-      console.log('Creating Plaid link token...')
+      console.log('Creating Real-Time Transaction Sync using Plaid link token...')
       const response = await api.post('/plaid/create-link-token')
       console.log('Link token response:', response.data)
       setLinkToken(response.data.linkToken)
@@ -28,7 +28,7 @@ function PlaidLink({ onSuccess, onExit }) {
       
       // Only show error in console, not as toast on page load
       if (error.response?.data?.error) {
-        console.warn('Plaid initialization error:', error.response.data.error)
+        console.warn('Real-Time Transaction Sync using Plaid initialization error:', error.response.data.error)
       }
     } finally {
       setLoading(false)
@@ -54,7 +54,7 @@ function PlaidLink({ onSuccess, onExit }) {
     onSuccess: onSuccessCallback,
     onExit: (err, metadata) => {
       if (err) {
-        console.error('Plaid Link error:', err)
+        console.error('Real-Time Transaction Sync using Plaid Link error:', err)
         toast.error('Bank connection cancelled')
       }
       if (onExit) {
@@ -80,14 +80,14 @@ function PlaidLink({ onSuccess, onExit }) {
           cursor: 'not-allowed'
         }}
       >
-        Loading...
+        Loading Real-Time Sync...
       </button>
     )
   }
 
   const handleClick = () => {
     if (!linkToken) {
-      toast.error('Bank connection is not available. Please check your Plaid configuration.')
+      toast.error('Real-Time Transaction Sync using Plaid is not available. Please check your configuration.')
       return
     }
     open()
@@ -109,7 +109,7 @@ function PlaidLink({ onSuccess, onExit }) {
         boxShadow: (ready || !linkToken) ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
       }}
     >
-      Connect Bank Account
+      Real-Time Transaction Sync using Plaid
     </button>
   )
 }

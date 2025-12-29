@@ -37,7 +37,7 @@ const Features = () => {
     },
     {
       icon: <CreditCard className="w-8 h-8" />,
-      title: 'Smart Banking Integration',
+      title: 'Real-Time Transaction Sync using Plaid',
       description: 'Connect all your bank accounts and credit cards in one place. Automatic transaction syncing keeps your financial data always up-to-date.',
       benefits: [
         'Unlimited account connections',
@@ -48,12 +48,10 @@ const Features = () => {
     {
       icon: <FileText className="w-8 h-8" />,
       title: 'Invoice Management',
-      description: 'Create professional invoices, send them to clients, and track payment status effortlessly. Get paid faster with automated reminders.',
+      description: 'Create professional invoices, send them to clients, and track payment status effortlessly.',
       benefits: [
         'Professional templates',
-        'Automated reminders',
-        'Payment tracking',
-        'Client portal'
+        'Payment tracking'
       ]
     },
     {
@@ -73,7 +71,6 @@ const Features = () => {
       description: 'Automatically categorize and track all your business expenses. Never miss a deduction with smart expense management.',
       benefits: [
         'Auto-categorization',
-        'Receipt capture',
         'Expense reports',
         'Tax-ready tracking'
       ]
@@ -81,10 +78,9 @@ const Features = () => {
     {
       icon: <PieChart className="w-8 h-8" />,
       title: 'Financial Reports',
-      description: 'Generate comprehensive financial reports including P&L statements, balance sheets, and cash flow statements with one click.',
+      description: 'Generate comprehensive financial reports including P&L statements, and cash flow statements with one click.',
       benefits: [
         'P&L statements',
-        'Balance sheets',
         'Cash flow reports',
         'Custom date ranges'
       ]
@@ -92,16 +88,6 @@ const Features = () => {
   ]
 
   const additionalFeatures = [
-    {
-      icon: <Bell className="w-6 h-6" />,
-      title: 'Smart Notifications',
-      description: 'Stay informed with intelligent alerts for important financial events'
-    },
-    {
-      icon: <Lock className="w-6 h-6" />,
-      title: 'Bank-Level Security',
-      description: 'Your data is protected with 256-bit encryption and secure protocols'
-    },
     {
       icon: <Cloud className="w-6 h-6" />,
       title: 'Cloud-Based',
@@ -116,11 +102,6 @@ const Features = () => {
       icon: <Calendar className="w-6 h-6" />,
       title: 'Tax Planning',
       description: 'Stay tax-ready with automated categorization and reports'
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: 'Data Backup',
-      description: 'Automatic backups ensure your financial data is always safe'
     }
   ]
 

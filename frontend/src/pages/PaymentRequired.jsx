@@ -63,7 +63,7 @@ function PaymentRequired() {
 
   const features = [
     'Unlimited bank account connections',
-    'Real-time transaction syncing',
+    'Real-Time Transaction Sync using Plaid',
     'AI-powered expense categorization (90%+ accuracy)',
     'Invoice management & auto-chasing',
     '90-day cash flow forecasting',

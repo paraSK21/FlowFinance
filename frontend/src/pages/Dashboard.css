@@ -1,0 +1,183 @@
+/* Dashboard Mobile Responsive Styles */
+
+.dashboard-container {
+  min-height: 100vh;
+  background: #0f1419;
+  padding: 24px;
+}
+
+.dashboard-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+}
+
+.dashboard-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.forecast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.forecast-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.forecast-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 8px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(31, 41, 55, 0.3);
+  borderRadius: 8px;
+  gap: 12px;
+}
+
+.transaction-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.transaction-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.transaction-category {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.transaction-amount {
+  font-size: 14px;
+  color: #d1d5db;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-right {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .forecast-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .forecast-buttons {
+    width: 100%;
+  }
+
+  .forecast-buttons button {
+    flex: 1;
+  }
+
+  .forecast-metrics {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .transaction-left {
+    width: 100%;
+  }
+
+  .transaction-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .transaction-category {
+    flex: 1;
+    text-align: center;
+  }
+
+  .transaction-amount {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 12px;
+  }
+
+  .forecast-metrics {
+    padding: 12px;
+  }
+
+  .forecast-metrics > div {
+    padding: 12px;
+    background: rgba(31, 41, 55, 0.5);
+    border-radius: 6px;
+  }
+}

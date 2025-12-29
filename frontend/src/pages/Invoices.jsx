@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { FileText, Plus, Send, DollarSign, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import './Invoices.css'
 
 function Invoices() {
   const [invoices, setInvoices] = useState([])
@@ -82,9 +83,9 @@ function Invoices() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1419', padding: '24px' }}>
+    <div className="invoices-container">
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div className="invoices-header">
           <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#d1d5db', margin: 0 }}>
             Invoice Management
           </h1>
@@ -111,7 +112,7 @@ function Invoices() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <div className="invoices-stats">
           <StatCard icon={DollarSign} label="Total Due" value={`$${(stats.totalDue || 0).toFixed(2)}`} color="#3b82f6" />
           <StatCard icon={AlertCircle} label="Overdue" value={stats.overdueCount || 0} color="#ef4444" />
           <StatCard icon={CheckCircle} label="Total Paid" value={`$${(stats.totalPaid || 0).toFixed(2)}`} color="#10b981" />
@@ -134,16 +135,8 @@ function Invoices() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {invoices.map((invoice) => (
-                <div key={invoice.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '16px',
-                  background: 'rgba(31, 41, 55, 0.3)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div key={invoice.id} className="invoice-item">
+                  <div className="invoice-left">
                     <FileText size={24} color="#3b82f6" />
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '500', color: '#d1d5db' }}>
@@ -152,7 +145,7 @@ function Invoices() {
                       <div style={{ fontSize: '12px', color: '#9ca3af' }}>{invoice.clientName}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div className="invoice-right">
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '16px', fontWeight: '600', color: '#d1d5db' }}>
                         ${invoice.amount}
@@ -170,7 +163,7 @@ function Invoices() {
                     }}>
                       {invoice.status}
                     </span>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="invoice-actions">
                       {invoice.status !== 'paid' ? (
                         <>
                           <button

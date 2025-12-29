@@ -1,0 +1,87 @@
+/* Transactions Mobile Responsive Styles */
+
+.transactions-container {
+  min-height: 100vh;
+  background: #0f1419;
+  padding: 24px;
+}
+
+.transactions-header {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.transactions-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.transactions-table-container {
+  background: #1a1f2e;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .transactions-table {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 768px) {
+  .transactions-container {
+    padding: 16px;
+  }
+
+  .transactions-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transactions-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .transactions-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .transactions-table-container {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .transactions-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transactions-container {
+    padding: 12px;
+  }
+
+  .transactions-table {
+    font-size: 12px;
+  }
+
+  .transactions-table th,
+  .transactions-table td {
+    padding: 12px 10px !important;
+  }
+}

@@ -105,7 +105,7 @@ const About = () => {
             </p>
             <p className="story-text">
               We set out to build a platform that combines the power of AI with beautiful, 
-              intuitive design. A platform that connects seamlessly with your bank accounts, 
+              intuitive design. A platform with Real-Time Transaction Sync using Plaid, 
               automatically categorizes transactions, and provides real-time insights into your 
               financial health.
             </p>

@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Coffee, ShoppingBag, CreditCard, TrendingUp, Filter, AlertCircle, Check, X } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import './Transactions.css'
 
 function Transactions() {
   const dispatch = useDispatch()
@@ -119,10 +120,10 @@ function Transactions() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1419', padding: '24px' }}>
+    <div className="transactions-container">
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="transactions-header">
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#ffffff', margin: '0 0 4px 0' }}>
               Transactions
@@ -131,7 +132,7 @@ function Transactions() {
               AI-categorized transaction history
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="transactions-actions">
             <button 
               onClick={handleBulkRecategorize}
               style={{
@@ -189,13 +190,8 @@ function Transactions() {
         </div>
 
         {/* Transactions List */}
-        <div style={{
-          background: '#1a1f2e',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          overflow: 'hidden'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="transactions-table-container">
+          <table className="transactions-table">
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                 <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '12px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase' }}>

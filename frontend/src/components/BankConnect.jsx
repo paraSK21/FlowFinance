@@ -16,7 +16,7 @@ function BankConnect({ onSuccess }) {
         Connect Your Bank Account
       </h3>
       <p style={{ color: '#9ca3af', margin: '0 0 16px 0', fontSize: '14px' }}>
-        Securely connect your bank accounts via Plaid
+        Real-Time Transaction Sync using Plaid
       </p>
 
       <div style={{

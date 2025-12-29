@@ -37,7 +37,7 @@ export default function Accounts() {
     await fetchAccounts();
     
     // Always sync transactions after connecting
-    toast.loading('Syncing transactions...', { id: 'sync' });
+    toast.loading('Real-Time Transaction Sync using Plaid...', { id: 'sync' });
     try {
       const response = await api.post('/plaid/sync');
       const results = response.data.results || [];
@@ -68,7 +68,7 @@ export default function Accounts() {
 
   const syncAllAccounts = async () => {
     setSyncing(true);
-    toast.loading('Syncing all accounts...', { id: 'sync-all' });
+    toast.loading('Real-Time Transaction Sync using Plaid...', { id: 'sync-all' });
     try {
       const response = await api.post('/plaid/sync');
       const results = response.data.results || [];

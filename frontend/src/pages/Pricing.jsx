@@ -7,7 +7,7 @@ import './Pricing.css'
 const Pricing = () => {
   const features = [
     'Unlimited bank account connections',
-    'Real-time transaction syncing',
+    'Real-Time Transaction Sync using Plaid',
     'AI-powered expense categorization',
     'Invoice management & tracking',
     'Cash flow forecasting',

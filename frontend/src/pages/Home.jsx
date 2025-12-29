@@ -26,7 +26,7 @@ const Home = () => {
     },
     {
       icon: <CreditCard className="w-6 h-6" />,
-      title: 'Smart Banking',
+      title: 'Real-Time Transaction Sync using Plaid',
       description: 'Connect all your accounts and manage finances from one unified platform.'
     },
     {
@@ -43,11 +43,6 @@ const Home = () => {
       icon: <Shield className="w-6 h-6" />,
       title: 'Secure Platform',
       description: 'Your data is protected with enterprise-grade encryption.'
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: 'Instant Sync',
-      description: 'Automatic transaction syncing across all your connected accounts.'
     }
   ]
 
@@ -62,7 +57,7 @@ const Home = () => {
 
   const stats = [
     { value: 'AI-Powered', label: 'Smart Categorization' },
-    { value: 'Real-Time', label: 'Transaction Sync' },
+    { value: 'Real-Time', label: 'Transaction Sync using Plaid' },
     { value: 'Automated', label: 'Forecasting' },
     { value: 'Secure', label: 'Platform' }
   ]
@@ -100,7 +95,7 @@ const Home = () => {
           </h1>
           <p className="hero-description">
             Take control of your business finances with intelligent automation, 
-            real-time insights, and seamless banking integration. Everything you need 
+            Real-Time Transaction Sync using Plaid, and seamless banking integration. Everything you need 
             to manage cash flow, invoices, and expenses in one place.
           </p>
           <div className="hero-actions">
@@ -219,16 +214,6 @@ const Home = () => {
             </Link>
           </div>
           <div className="benefits-visual">
-            <div className="visual-card">
-              <Globe className="w-12 h-12 text-blue-400 mb-4" />
-              <h3 className="visual-title">Global Reach</h3>
-              <p className="visual-text">Support for multiple currencies and international banking</p>
-            </div>
-            <div className="visual-card">
-              <Lock className="w-12 h-12 text-green-400 mb-4" />
-              <h3 className="visual-title">Secure Platform</h3>
-              <p className="visual-text">Enterprise-grade encryption keeps your data safe</p>
-            </div>
             <div className="visual-card">
               <TrendingUp className="w-12 h-12 text-purple-400 mb-4" />
               <h3 className="visual-title">Smart Insights</h3>

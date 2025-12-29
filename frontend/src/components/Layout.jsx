@@ -1,13 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
-import { LayoutDashboard, Receipt, TrendingUp, Package, DollarSign, FileText, User, ChevronDown } from 'lucide-react'
+import { Menu, X, User } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Logo from './Logo'
 import TrialBanner from './TrialBanner'
 
 function Layout() {
   const dispatch = useDispatch()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard' },
@@ -27,7 +28,7 @@ function Layout() {
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         padding: '0'
       }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -42,8 +43,8 @@ function Layout() {
               </span>
             </div>
 
-            {/* Navigation Items */}
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {/* Desktop Navigation Items */}
+            <div className="hide-mobile" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               {navItems.map((item) => (
                 <NavLink
                   key={item.path}
@@ -66,8 +67,8 @@ function Layout() {
               ))}
             </div>
 
-            {/* User Menu */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Desktop User Menu */}
+            <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <NavLink
                 to="/settings"
                 style={{
@@ -101,7 +102,103 @@ function Layout() {
                 Logout
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="show-mobile"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              style={{
+                display: 'none',
+                padding: '8px',
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer'
+              }}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="show-mobile" style={{
+              display: 'none',
+              paddingBottom: '16px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+              marginTop: '8px'
+            }}>
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={({ isActive }) => ({
+                    display: 'block',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    color: isActive ? '#3b82f6' : '#d1d5db',
+                    background: isActive ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                    textDecoration: 'none',
+                    borderLeft: isActive ? '3px solid #3b82f6' : '3px solid transparent',
+                    marginBottom: '4px'
+                  })}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                padding: '12px 16px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                marginTop: '8px'
+              }}>
+                <NavLink
+                  to="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '10px',
+                    background: 'rgba(55, 65, 81, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: '#9ca3af',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  <User size={18} />
+                  Settings
+                </NavLink>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    dispatch(logout())
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '8px',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 

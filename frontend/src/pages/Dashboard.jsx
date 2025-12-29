@@ -7,6 +7,7 @@ import { fetchTransactions } from '../store/slices/transactionSlice'
 import { generateForecast } from '../store/slices/forecastSlice'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import './Dashboard.css'
 
 function Dashboard() {
   const dispatch = useDispatch()
@@ -302,8 +303,8 @@ function Dashboard() {
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1419', padding: '24px' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="dashboard-container">
+      <div className="dashboard-inner">
         {/* Show empty state if no accounts */}
         {(!accounts || accounts.length === 0) ? (
           <div style={{
@@ -357,9 +358,9 @@ function Dashboard() {
             </button>
           </div>
         ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
+        <div className="dashboard-grid">
           {/* Left Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="dashboard-left">
             {/* Enhanced Cash Flow Forecast */}
             <div style={{
               background: '#1a1f2e',
@@ -367,7 +368,7 @@ function Dashboard() {
               padding: '24px',
               border: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div className="forecast-header">
                 <div>
                   <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#ffffff', margin: '0 0 4px 0' }}>
                     90-Day Cash Flow Forecast
@@ -376,7 +377,7 @@ function Dashboard() {
                     AI-powered predictions based on your transaction patterns
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="forecast-buttons">
                   <button
                     onClick={() => setSelectedForecastView('balance')}
                     style={{
@@ -458,15 +459,7 @@ function Dashboard() {
                 <>
                   {/* Forecast Metrics - Simplified with Ranges */}
                   {forecastMetrics && (
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(3, 1fr)', 
-                      gap: '16px', 
-                      marginBottom: '20px',
-                      padding: '20px',
-                      background: 'rgba(31, 41, 55, 0.3)',
-                      borderRadius: '8px'
-                    }}>
+                    <div className="forecast-metrics">
                       <div>
                         <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           Current Balance
@@ -716,7 +709,7 @@ function Dashboard() {
               )}
 
               {/* Stats Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '20px' }}>
+              <div className="stats-row">
                 <StatCard 
                   icon={Building2}
                   iconColor="#3b82f6"
@@ -753,15 +746,8 @@ function Dashboard() {
                   </div>
                 ) : (
                   displayTransactions.map((txn) => (
-                  <div key={txn.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px',
-                    background: 'rgba(31, 41, 55, 0.3)',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={txn.id} className="transaction-item">
+                    <div className="transaction-left">
                       <div style={{
                         width: '40px',
                         height: '40px',
@@ -769,26 +755,24 @@ function Dashboard() {
                         background: `${txn.color}20`,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        flexShrink: 0
                       }}>
                         <txn.icon size={20} color={txn.color} />
                       </div>
-                      <div>
-                        <div style={{ fontSize: '14px', color: '#d1d5db', fontWeight: '500' }}>{txn.name}</div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '14px', color: '#d1d5db', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{txn.name}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>{txn.subtitle}</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
+                    <div className="transaction-right">
+                      <span className="transaction-category" style={{
                         background: `${txn.color}20`,
                         color: txn.color
                       }}>
                         {txn.category}
                       </span>
-                      <span style={{ fontSize: '14px', color: '#d1d5db', fontWeight: '600', minWidth: '80px', textAlign: 'right' }}>
+                      <span className="transaction-amount">
                         ${txn.amount.toLocaleString()}
                       </span>
                     </div>
@@ -800,7 +784,7 @@ function Dashboard() {
           </div>
 
           {/* Right Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="dashboard-right">
             {/* Enhanced Profit First Status */}
             <div style={{
               background: '#1a1f2e',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Bell, DollarSign, User, Save } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import './Settings.css'
 
 function Settings() {
   const [profile, setProfile] = useState({})
@@ -105,20 +106,14 @@ function Settings() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1419', padding: '24px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div className="settings-container">
+      <div className="settings-inner">
         <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#d1d5db', marginBottom: '24px' }}>
           Settings
         </h1>
 
         {/* Profile Settings */}
-        <div style={{
-          background: '#1a1f2e',
-          borderRadius: '12px',
-          padding: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          marginBottom: '24px'
-        }}>
+        <div className="settings-section">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
             <User size={24} color="#3b82f6" />
             <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#d1d5db', margin: 0 }}>
@@ -126,7 +121,7 @@ function Settings() {
             </h2>
           </div>
           <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            <div className="settings-grid-2">
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
                   First Name
@@ -197,13 +192,7 @@ function Settings() {
         </div>
 
         {/* Notification Preferences */}
-        <div style={{
-          background: '#1a1f2e',
-          borderRadius: '12px',
-          padding: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          marginBottom: '24px'
-        }}>
+        <div className="settings-section">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
             <Bell size={24} color="#f59e0b" />
             <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#d1d5db', margin: 0 }}>
@@ -251,12 +240,7 @@ function Settings() {
         </div>
 
         {/* Profit First Settings */}
-        <div style={{
-          background: '#1a1f2e',
-          borderRadius: '12px',
-          padding: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.05)'
-        }}>
+        <div className="settings-section">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
             <DollarSign size={24} color="#10b981" />
             <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#d1d5db', margin: 0 }}>
@@ -279,7 +263,7 @@ function Settings() {
 
             {profitFirst.enabled && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                <div className="settings-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
                       Profit %
