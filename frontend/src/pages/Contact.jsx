@@ -60,8 +60,8 @@ const Contact = () => {
                 </div>
                 <div className="method-content">
                   <h3 className="method-title">Email</h3>
-                  <a href="mailto:flowfinance06@gmail.com" className="method-link">
-                    flowfinance06@gmail.com
+                  <a href="mailto:flowfinance2106@gmail.com" className="method-link">
+                    flowfinance2106@gmail.com
                   </a>
                   <p className="method-description">
                     Send us an email anytime
@@ -102,7 +102,7 @@ const Contact = () => {
             <div className="faq-item">
               <h3 className="faq-question">Can I schedule a demo?</h3>
               <p className="faq-answer">
-                Yes! Email us at flowfinance06@gmail.com with "Demo Request" in the subject line, 
+                Yes! Email us at flowfinance2106@gmail.com with "Demo Request" in the subject line, 
                 and we'll arrange a personalized demo of FlowFinance.
               </p>
             </div>
