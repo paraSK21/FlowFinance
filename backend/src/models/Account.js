@@ -69,6 +69,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     lastSynced: {
       type: DataTypes.DATE
+    },
+    plaidSyncCursor: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Cursor for incremental Plaid transaction syncing'
     }
   }, {
     timestamps: true,

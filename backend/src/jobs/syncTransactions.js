@@ -2,11 +2,12 @@ const plaidService = require('../services/plaidService');
 const Account = require('../models/Account');
 
 /**
- * Auto-sync transactions for all active accounts
- * Runs every 4 hours
+ * Manual sync for all active accounts
+ * Note: Automatic syncing is disabled - use webhooks instead
+ * This is only for manual/on-demand syncing
  */
 async function syncAllTransactions() {
-  console.log('Starting auto-sync job...');
+  console.log('Starting manual sync job...');
   
   try {
     // Get all active accounts
@@ -22,12 +23,13 @@ async function syncAllTransactions() {
 
     for (const account of accounts) {
       try {
-        const result = await plaidService.syncTransactions(
+        const result = await plaidService.syncTransactionsIncremental(
           account.plaidAccessToken,
-          account.userId
+          account.userId,
+          account.id
         );
 
-        console.log(`Synced ${result.synced} transactions for account ${account.accountName}`);
+        console.log(`Synced account ${account.accountName}: ${result.added} added, ${result.modified} modified, ${result.removed} removed`);
         successCount++;
       } catch (error) {
         console.error(`Failed to sync account ${account.id}:`, error.message);
@@ -35,7 +37,7 @@ async function syncAllTransactions() {
       }
     }
 
-    console.log(`Auto-sync completed: ${successCount} success, ${errorCount} errors`);
+    console.log(`Manual sync completed: ${successCount} success, ${errorCount} errors`);
     
     return {
       success: true,
@@ -43,7 +45,7 @@ async function syncAllTransactions() {
       errors: errorCount,
     };
   } catch (error) {
-    console.error('Auto-sync job error:', error);
+    console.error('Manual sync job error:', error);
     throw error;
   }
 }

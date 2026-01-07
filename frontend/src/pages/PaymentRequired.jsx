@@ -162,7 +162,7 @@ function PaymentRequired() {
                 Professional Plan
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '48px', fontWeight: '700', color: '#ffffff' }}>$49</span>
+                <span style={{ fontSize: '48px', fontWeight: '700', color: '#ffffff' }}>$99</span>
                 <span style={{ fontSize: '18px', color: '#9ca3af' }}>/month</span>
               </div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>

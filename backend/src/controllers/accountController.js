@@ -44,7 +44,9 @@ exports.syncTransactions = async (req, res) => {
       return res.status(400).json({ error: 'No accounts found to sync' });
     }
 
-    let totalSynced = 0;
+    let totalAdded = 0;
+    let totalModified = 0;
+    let totalRemoved = 0;
     const errors = [];
 
     for (const account of accounts) {
@@ -54,13 +56,16 @@ exports.syncTransactions = async (req, res) => {
           continue;
         }
 
-        const result = await plaidService.syncTransactions(
+        const result = await plaidService.syncTransactionsIncremental(
           account.plaidAccessToken,
-          req.userId
+          req.userId,
+          account.id
         );
-        totalSynced += result.synced || 0;
+        totalAdded += result.added || 0;
+        totalModified += result.modified || 0;
+        totalRemoved += result.removed || 0;
         
-        console.log(`Synced ${result.synced} transactions for account ${account.accountName}`);
+        console.log(`Synced account ${account.accountName}: ${result.added} added, ${result.modified} modified, ${result.removed} removed`);
       } catch (error) {
         console.error(`Error syncing account ${account.id}:`, error);
         errors.push({
@@ -71,7 +76,7 @@ exports.syncTransactions = async (req, res) => {
       }
     }
 
-    if (errors.length > 0 && totalSynced === 0) {
+    if (errors.length > 0 && totalAdded === 0 && totalModified === 0) {
       return res.status(500).json({ 
         error: 'Failed to sync transactions',
         details: errors
@@ -79,7 +84,9 @@ exports.syncTransactions = async (req, res) => {
     }
 
     res.json({ 
-      synced: totalSynced,
+      added: totalAdded,
+      modified: totalModified,
+      removed: totalRemoved,
       accountsProcessed: accounts.length,
       errors: errors.length > 0 ? errors : undefined
     });

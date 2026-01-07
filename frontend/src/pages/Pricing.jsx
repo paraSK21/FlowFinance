@@ -71,7 +71,7 @@ const Pricing = () => {
               <div className="price-info">
                 <div className="price">
                   <span className="currency">$</span>
-                  <span className="amount">49</span>
+                  <span className="amount">99</span>
                   <span className="period">/month</span>
                 </div>
                 <p className="price-note">After trial period</p>
@@ -114,7 +114,7 @@ const Pricing = () => {
               <h3 className="faq-question">How does the free trial work?</h3>
               <p className="faq-answer">
                 Start your 7-day free trial with full access to all features. 
-                No credit card required. After the trial, you'll be charged $49/month 
+                No credit card required. After the trial, you'll be charged $99/month 
                 unless you cancel.
               </p>
             </div>
@@ -131,7 +131,7 @@ const Pricing = () => {
             <div className="faq-item">
               <h3 className="faq-question">Is there a setup fee?</h3>
               <p className="faq-answer">
-                No setup fees, no hidden charges. Just $49/month after your free trial. 
+                No setup fees, no hidden charges. Just $99/month after your free trial. 
                 What you see is what you pay.
               </p>
             </div>

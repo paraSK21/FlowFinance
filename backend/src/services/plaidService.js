@@ -38,7 +38,7 @@ class PlaidService {
       const response = await this.client.linkTokenCreate({
         user: { client_user_id: userId },
         client_name: 'FlowFinance',
-        products: ['transactions', 'auth'],
+        products: ['transactions'],
         country_codes: countryCodes,
         language: 'en',
         webhook: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/plaid/webhook`,
@@ -127,8 +127,8 @@ class PlaidService {
       }
 
       console.log('Syncing initial transactions...');
-      // Sync initial transactions
-      await this.syncTransactions(accessToken, userId);
+      // Sync initial transactions using the new sync endpoint
+      await this.syncTransactionsIncremental(accessToken, userId, savedAccounts[0].id);
 
       console.log('Bank account linked successfully');
       return savedAccounts;
@@ -139,58 +139,104 @@ class PlaidService {
     }
   }
 
-  async syncTransactions(accessToken, userId, startDate = null, endDate = null) {
+  /**
+   * New incremental sync using /transactions/sync endpoint
+   * More efficient - only fetches new/updated transactions using cursor
+   */
+  async syncTransactionsIncremental(accessToken, userId, accountId) {
     if (!this.client) throw new Error('Plaid not configured');
 
     try {
-      // Default to last 90 days if no dates provided
-      if (!startDate) {
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - 90);
-      }
-      if (!endDate) {
-        endDate = new Date();
-      }
-
-      const request = {
-        access_token: accessToken,
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
-      };
-
-      const response = await this.client.transactionsGet(request);
-      let transactions = response.data.transactions;
-
-      // Handle pagination
-      const totalTransactions = response.data.total_transactions;
-      while (transactions.length < totalTransactions) {
-        const paginatedRequest = {
-          ...request,
-          offset: transactions.length,
-        };
-        const paginatedResponse = await this.client.transactionsGet(paginatedRequest);
-        transactions = transactions.concat(paginatedResponse.data.transactions);
-      }
-
-      // Get account for this access token
       const account = await Account.findOne({
-        where: { plaidAccessToken: accessToken, userId },
+        where: { id: accountId, userId },
       });
 
       if (!account) {
         throw new Error('Account not found');
       }
 
-      // Process and save transactions
+      let cursor = account.plaidSyncCursor || null;
+      let hasMore = true;
+      let added = [];
+      let modified = [];
+      let removed = [];
+
+      console.log(`Starting incremental sync for ${account.accountName}, cursor: ${cursor || 'initial'}`);
+
+      // Keep calling /transactions/sync until hasMore is false
+      while (hasMore) {
+        const request = {
+          access_token: accessToken,
+        };
+
+        if (cursor) {
+          request.cursor = cursor;
+        }
+
+        const response = await this.client.transactionsSync(request);
+        
+        added = added.concat(response.data.added);
+        modified = modified.concat(response.data.modified);
+        removed = removed.concat(response.data.removed);
+        
+        hasMore = response.data.has_more;
+        cursor = response.data.next_cursor;
+      }
+
+      console.log(`Sync complete: ${added.length} added, ${modified.length} modified, ${removed.length} removed`);
+
+      // Process added transactions
       const savedTransactions = [];
-      for (const txn of transactions) {
-        // Check if transaction already exists
+      for (const txn of added) {
+        const newTransaction = await Transaction.create({
+          userId,
+          accountId: account.id,
+          plaidTransactionId: txn.transaction_id,
+          amount: txn.amount,
+          date: txn.date,
+          description: txn.name,
+          merchantName: txn.merchant_name,
+          category: txn.category ? txn.category[0] : null,
+          aiCategory: 'Pending',
+          aiCategoryConfidence: 0,
+          subcategory: txn.category ? txn.category[1] : null,
+          type: txn.amount > 0 ? 'expense' : 'income',
+          pending: txn.pending,
+        });
+
+        savedTransactions.push(newTransaction);
+        
+        // AI categorize asynchronously
+        aiService.categorizeTransaction(
+          txn.name,
+          txn.merchant_name || '',
+          txn.amount,
+          userId,
+          txn.amount > 0 ? 'expense' : 'income'
+        ).then(aiResult => {
+          newTransaction.update({
+            aiCategory: aiResult.category,
+            aiCategoryConfidence: aiResult.confidence,
+            categorizationMethod: aiResult.method,
+            needsReview: aiResult.confidence < 0.75
+          });
+        }).catch(aiError => {
+          console.log('AI categorization failed:', aiError.message);
+          newTransaction.update({
+            aiCategory: 'Other',
+            aiCategoryConfidence: 0.5,
+            needsReview: true
+          });
+        });
+      }
+
+      // Process modified transactions
+      for (const txn of modified) {
         const existing = await Transaction.findOne({
           where: { plaidTransactionId: txn.transaction_id },
         });
 
         if (existing) {
-          // Update existing transaction
           await existing.update({
             amount: txn.amount,
             date: txn.date,
@@ -200,52 +246,17 @@ class PlaidService {
             pending: txn.pending,
           });
           savedTransactions.push(existing);
-        } else {
-          // Create new transaction first without AI categorization
-          const newTransaction = await Transaction.create({
-            userId,
-            accountId: account.id,
-            plaidTransactionId: txn.transaction_id,
-            amount: txn.amount,
-            date: txn.date,
-            description: txn.name,
-            merchantName: txn.merchant_name,
-            category: txn.category ? txn.category[0] : null,
-            aiCategory: 'Pending', // Will be updated by background job
-            aiCategoryConfidence: 0,
-            subcategory: txn.category ? txn.category[1] : null,
-            type: txn.amount > 0 ? 'expense' : 'income', // Plaid: positive = expense (debit), negative = income (credit)
-            pending: txn.pending,
-          });
-
-          savedTransactions.push(newTransaction);
-          
-          // AI categorize asynchronously (don't wait for it)
-          aiService.categorizeTransaction(
-            txn.name,
-            txn.merchant_name || '',
-            txn.amount,
-            userId,
-            txn.amount > 0 ? 'expense' : 'income' // Plaid: positive = expense (debit), negative = income (credit)
-          ).then(aiResult => {
-            newTransaction.update({
-              aiCategory: aiResult.category,
-              aiCategoryConfidence: aiResult.confidence,
-              categorizationMethod: aiResult.method,
-              needsReview: aiResult.confidence < 0.75
-            });
-          }).catch(aiError => {
-            console.log('AI categorization failed for transaction:', txn.transaction_id, aiError.message);
-            newTransaction.update({
-              aiCategory: 'Other',
-              aiCategoryConfidence: 0.5,
-              needsReview: true
-            });
-          });
         }
       }
 
-      // Update account balance
+      // Process removed transactions
+      for (const txn of removed) {
+        await Transaction.destroy({
+          where: { plaidTransactionId: txn.transaction_id },
+        });
+      }
+
+      // Update account with new cursor and balance
       const accountsResponse = await this.client.accountsGet({
         access_token: accessToken,
       });
@@ -255,26 +266,22 @@ class PlaidService {
       );
 
       if (accountData) {
-        console.log('Updating account balance:', {
-          accountName: account.accountName,
-          oldBalance: account.currentBalance,
-          newBalance: accountData.balances.current,
-          available: accountData.balances.available
-        });
-        
         await account.update({
           currentBalance: parseFloat(accountData.balances.current) || 0,
           availableBalance: parseFloat(accountData.balances.available) || 0,
+          plaidSyncCursor: cursor,
           lastSynced: new Date(),
         });
       }
 
       return {
-        synced: savedTransactions.length,
+        added: added.length,
+        modified: modified.length,
+        removed: removed.length,
         transactions: savedTransactions,
       };
     } catch (error) {
-      console.error('Plaid sync transactions error:', error);
+      console.error('Plaid incremental sync error:', error);
       throw new Error('Failed to sync transactions');
     }
   }
@@ -288,9 +295,10 @@ class PlaidService {
       const results = [];
       for (const account of accounts) {
         try {
-          const result = await this.syncTransactions(
+          const result = await this.syncTransactionsIncremental(
             account.plaidAccessToken,
-            userId
+            userId,
+            account.id
           );
           results.push({
             accountId: account.id,
@@ -311,6 +319,8 @@ class PlaidService {
     } catch (error) {
       console.error('Sync all accounts error:', error);
       throw error;
+    }
+  }
     }
   }
 
@@ -347,8 +357,9 @@ class PlaidService {
       case 'INITIAL_UPDATE':
       case 'HISTORICAL_UPDATE':
       case 'DEFAULT_UPDATE':
-        // Sync transactions
-        await this.syncTransactions(account.plaidAccessToken, account.userId);
+        // Sync transactions using incremental sync
+        console.log(`Webhook triggered sync for account ${account.accountName}`);
+        await this.syncTransactionsIncremental(account.plaidAccessToken, account.userId, account.id);
         break;
       case 'TRANSACTIONS_REMOVED':
         // Handle removed transactions

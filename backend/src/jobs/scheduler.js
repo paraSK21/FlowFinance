@@ -12,16 +12,19 @@ class JobScheduler {
   start() {
     console.log('Starting job scheduler...');
 
+    // DISABLED: Automatic transaction sync (now using webhooks)
     // Sync transactions every 4 hours
-    const syncJob = cron.schedule('0 */4 * * *', async () => {
-      console.log('Running scheduled transaction sync...');
-      try {
-        await syncAllTransactions();
-      } catch (error) {
-        console.error('Scheduled sync error:', error);
-      }
-    });
-    this.jobs.push({ name: 'Transaction Sync', schedule: 'Every 4 hours', job: syncJob });
+    // const syncJob = cron.schedule('0 */4 * * *', async () => {
+    //   console.log('Running scheduled transaction sync...');
+    //   try {
+    //     await syncAllTransactions();
+    //   } catch (error) {
+    //     console.error('Scheduled sync error:', error);
+    //   }
+    // });
+    // this.jobs.push({ name: 'Transaction Sync', schedule: 'Every 4 hours', job: syncJob });
+
+    console.log('Note: Transaction sync now handled by Plaid webhooks for efficiency');
 
     // Process invoice reminders every hour
     const reminderJob = cron.schedule('0 * * * *', async () => {
