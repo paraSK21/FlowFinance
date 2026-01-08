@@ -64,8 +64,8 @@ function PaymentRequired() {
   const features = [
     'Unlimited bank account connections',
     'Real-Time Transaction Sync using Plaid',
-    'AI-powered expense categorization (90%+ accuracy)',
-    'Invoice management & auto-chasing',
+    'AI-powered expense categorization',
+    'Invoice management',
     '90-day cash flow forecasting',
     'Automated tax deduction scanning',
     'Profit First allocation system',
@@ -162,7 +162,7 @@ function PaymentRequired() {
                 Professional Plan
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '48px', fontWeight: '700', color: '#ffffff' }}>$99</span>
+                <span style={{ fontSize: '48px', fontWeight: '700', color: '#ffffff' }}>$59</span>
                 <span style={{ fontSize: '18px', color: '#9ca3af' }}>/month</span>
               </div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
@@ -214,7 +214,7 @@ function PaymentRequired() {
             </div>
 
             {/* PayPal Button */}
-            {planId && (
+            {planId ? (
               <div style={{ marginBottom: '16px' }}>
                 <PayPalButtons
                   createSubscription={(data, actions) => {
@@ -234,6 +234,22 @@ function PaymentRequired() {
                     label: 'subscribe'
                   }}
                 />
+              </div>
+            ) : (
+              <div style={{
+                padding: '20px',
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                textAlign: 'center'
+              }}>
+                <p style={{ color: '#9ca3af', fontSize: '14px', margin: '0 0 12px 0' }}>
+                  PayPal payment is not configured yet.
+                </p>
+                <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
+                  Please contact support at flowfinance06@gmail.com to activate your subscription.
+                </p>
               </div>
             )}
 

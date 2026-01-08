@@ -188,6 +188,17 @@ class PlaidService {
       // Process added transactions
       const savedTransactions = [];
       for (const txn of added) {
+        // Check if transaction already exists to prevent duplicates
+        const existingTransaction = await Transaction.findOne({
+          where: { plaidTransactionId: txn.transaction_id }
+        });
+
+        if (existingTransaction) {
+          console.log(`Transaction ${txn.transaction_id} already exists, skipping...`);
+          savedTransactions.push(existingTransaction);
+          continue;
+        }
+
         const newTransaction = await Transaction.create({
           userId,
           accountId: account.id,
@@ -319,8 +330,6 @@ class PlaidService {
     } catch (error) {
       console.error('Sync all accounts error:', error);
       throw error;
-    }
-  }
     }
   }
 

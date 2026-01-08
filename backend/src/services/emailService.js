@@ -45,7 +45,7 @@ class EmailService {
     const msg = {
       to,
       from: {
-        email: process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+        email: process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL || 'flowfinance06@gmail.com',
         name: process.env.SENDGRID_FROM_NAME || 'FlowFinance'
       },
       subject,
@@ -81,7 +81,7 @@ class EmailService {
 
   async sendWithSMTP(to, subject, html, text) {
     const mailOptions = {
-      from: process.env.FROM_EMAIL || 'noreply@flowfinance.com',
+      from: process.env.FROM_EMAIL || 'flowfinance06@gmail.com',
       to,
       subject,
       text: text || this.stripHtml(html),

@@ -721,7 +721,7 @@ function Dashboard() {
                   iconColor="#f59e0b"
                   label="Invoices Due"
                   value={`$${stats.invoicesDue.toLocaleString()}`}
-                  subtitle="Auto-chasing active"
+                  subtitle="Tracking active"
                 />
               </div>
             </div>
