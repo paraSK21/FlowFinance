@@ -27,6 +27,7 @@ router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.get('/auth/profile', authenticate, authController.getProfile);
 router.put('/auth/profile', authenticate, authController.updateProfile);
+router.get('/auth/me', authenticate, authController.getMe);
 
 // Google OAuth routes
 const googleAuthRoutes = require('./googleAuth');

@@ -9,6 +9,23 @@ exports.googleCallback = async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=authentication_failed`);
     }
 
+    // Record consent if not already recorded
+    if (!user.consentAccepted) {
+      const ipAddress = req.headers['x-forwarded-for'] || 
+                        req.connection.remoteAddress || 
+                        req.socket.remoteAddress || 
+                        'unknown';
+      
+      await user.update({
+        consentAccepted: true,
+        consentAcceptedAt: new Date(),
+        consentVersion: '1.0',
+        consentIpAddress: ipAddress
+      });
+      
+      console.log(`✓ Consent recorded for user ${user.id} from IP ${ipAddress}`);
+    }
+
     // Start 7-day trial if user is new (no trial started yet)
     if (!user.trialStartedAt && user.subscriptionPlan === 'free') {
       const trialStartDate = new Date();

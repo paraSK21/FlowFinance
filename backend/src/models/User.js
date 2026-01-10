@@ -109,6 +109,28 @@ module.exports = (sequelize, DataTypes) => {
     onboardingCompleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    consentAccepted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+      comment: 'User accepted Terms of Service and Privacy Policy'
+    },
+    consentAcceptedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Timestamp when user accepted consent'
+    },
+    consentVersion: {
+      type: DataTypes.STRING,
+      defaultValue: '1.0',
+      allowNull: true,
+      comment: 'Version of Terms/Privacy Policy accepted'
+    },
+    consentIpAddress: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'IP address when consent was given'
     }
   }, {
     timestamps: true,
