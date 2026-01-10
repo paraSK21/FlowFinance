@@ -28,6 +28,30 @@ function AuthCallback() {
         // Update Redux state
         dispatch(setCredentials({ token }))
         
+        // Sync consent from database to localStorage
+        // This ensures consent works across devices/browsers
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (response.ok) {
+            const userData = await response.json()
+            
+            // If user has accepted consent in database, sync to localStorage
+            if (userData.consentAccepted) {
+              localStorage.setItem('flowfinance_consent_accepted', 'true')
+              localStorage.setItem('flowfinance_consent_version', userData.consentVersion || '1.0')
+              localStorage.setItem('flowfinance_consent_date', userData.consentAcceptedAt || new Date().toISOString())
+              console.log('✓ Consent synced from database to localStorage')
+            }
+          }
+        } catch (err) {
+          console.log('Could not sync consent, will check on next login:', err.message)
+        }
+        
         toast.success('Successfully logged in!')
         
         // Small delay to ensure state is updated
