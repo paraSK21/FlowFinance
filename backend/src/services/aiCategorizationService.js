@@ -501,6 +501,21 @@ Confidence: [0.XX]`;
       const finalCategory = matchedCategory || 'Other';
       const finalConfidence = matchedCategory ? confidence : 0.50;
 
+      // CRITICAL SAFETY CHECK: Never categorize expenses as Revenue
+      // This prevents AI from incorrectly categorizing outgoing money as income
+      if (finalCategory === 'Revenue' && amount < 0) {
+        console.warn(`⚠️ Gemini tried to categorize expense as Revenue. Correcting to 'Other'`);
+        return {
+          category: 'Other',
+          confidence: 0.50,
+          method: 'gemini_ai_corrected',
+          apiKeyUsed: this.currentKeyIndex + 1,
+          modelUsed: this.modelNames[this.currentModelIndex],
+          requestCount: this.keyRequestCount[this.currentKeyIndex],
+          correctionReason: 'Prevented expense from being categorized as Revenue'
+        };
+      }
+
       const modelName = this.modelNames[this.currentModelIndex];
       console.log(`Gemini ${modelName} (Key #${this.currentKeyIndex + 1}, Req: ${this.keyRequestCount[this.currentKeyIndex]}): "${merchantTokens}" → ${finalCategory} (${(finalConfidence * 100).toFixed(0)}%)`);
 

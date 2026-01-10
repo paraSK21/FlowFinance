@@ -15,6 +15,14 @@ class ImprovedForecastService {
       const user = await User.findByPk(userId);
       const businessSettings = user?.businessSettings || {};
       
+      // Ensure weekend multipliers are configurable (default to 1.0 = no change)
+      if (!businessSettings.weekendIncomeMultiplier) {
+        businessSettings.weekendIncomeMultiplier = 1.0;
+      }
+      if (!businessSettings.weekendExpenseMultiplier) {
+        businessSettings.weekendExpenseMultiplier = 1.0;
+      }
+      
       // Get historical transactions (last 6 months minimum)
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
