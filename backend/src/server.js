@@ -64,9 +64,10 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api', routes);
 
-// Cron jobs
-// Auto-chase overdue invoices daily at 9 AM
-cron.schedule('0 9 * * *', autoChaseInvoices);
+// Cron jobs - only run when not on Vercel (serverless doesn't support cron)
+if (process.env.VERCEL !== '1') {
+  cron.schedule('0 9 * * *', autoChaseInvoices);
+}
 
 // 404 handler
 app.use((req, res) => {
@@ -81,40 +82,46 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Start job scheduler
-const jobScheduler = require('./jobs/scheduler');
-const socketService = require('./socket');
+// Check if running on Vercel (serverless)
+const isVercel = process.env.VERCEL === '1';
 
-// Database sync and server start
-const syncOptions = process.env.NODE_ENV === 'production' 
-  ? { alter: false } // Never alter in production - use migrations
-  : { alter: false };  // Changed to false for faster startup
+// Only run server startup logic when NOT on Vercel
+if (!isVercel) {
+  const jobScheduler = require('./jobs/scheduler');
+  const socketService = require('./socket');
 
-db.sequelize.sync(syncOptions).then(async () => {
-  console.log('Database connection established');
-  
-  const server = app.listen(PORT, () => {
-    console.log(`✓ Server running on port ${PORT}`);
-    console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`✓ Backend URL: ${process.env.BACKEND_URL || `http://localhost:${PORT}`}`);
-    console.log(`✓ Frontend URL: ${process.env.FRONTEND_URL}`);
-    
-    // Initialize WebSocket
-    socketService.initialize(server);
-    
-    // Start background jobs
-    jobScheduler.start();
+  // Database sync and server start
+  const syncOptions = process.env.NODE_ENV === 'production'
+    ? { alter: false } // Never alter in production - use migrations
+    : { alter: false };  // Changed to false for faster startup
+
+  db.sequelize.sync(syncOptions).then(async () => {
+    console.log('Database connection established');
+
+    const server = app.listen(PORT, () => {
+      console.log(`✓ Server running on port ${PORT}`);
+      console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✓ Backend URL: ${process.env.BACKEND_URL || `http://localhost:${PORT}`}`);
+      console.log(`✓ Frontend URL: ${process.env.FRONTEND_URL}`);
+
+      // Initialize WebSocket
+      socketService.initialize(server);
+
+      // Start background jobs
+      jobScheduler.start();
+    });
+  }).catch(err => {
+    console.error('Database connection error:', err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('Database connection error:', err);
-  process.exit(1);
-});
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  jobScheduler.stop();
-  process.exit(0);
-});
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    jobScheduler.stop();
+    process.exit(0);
+  });
+}
 
+// Export app for Vercel serverless functions
 module.exports = app;

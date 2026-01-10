@@ -18,6 +18,7 @@ if (!process.env.DATABASE_URL) {
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  native: false, // Disable pg-native for Vercel compatibility
   dialectOptions: {
     ssl: {
       require: true,
