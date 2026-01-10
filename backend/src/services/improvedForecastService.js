@@ -109,7 +109,8 @@ class ImprovedForecastService {
       const dayOfMonth = date.getDate();
       const amount = Math.abs(this.safeFloat(txn.amount));
       const category = txn.aiCategory || txn.category || 'Other';
-      const type = txn.type;
+      // Plaid: positive = income, negative = expense
+      const type = txn.amount > 0 ? 'income' : 'expense';
 
       // Day of week patterns
       if (!dayOfWeekPatterns[dayOfWeek]) {
@@ -140,12 +141,13 @@ class ImprovedForecastService {
     });
 
     // Calculate averages
+    // Plaid: positive amounts = income, negative amounts = expenses
     const totalIncome = cleanedTxns
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
+      .filter(t => this.safeFloat(t.amount) > 0)
+      .reduce((sum, t) => sum + this.safeFloat(t.amount), 0);
     
     const totalExpenses = cleanedTxns
-      .filter(t => t.type === 'expense')
+      .filter(t => this.safeFloat(t.amount) < 0)
       .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
 
     // Calculate number of days in the dataset
@@ -154,8 +156,8 @@ class ImprovedForecastService {
     const maxDate = new Date(Math.max(...dates));
     const totalDays = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
 
-    const incomeCount = cleanedTxns.filter(t => t.type === 'income').length || 1;
-    const expenseCount = cleanedTxns.filter(t => t.type === 'expense').length || 1;
+    const incomeCount = cleanedTxns.filter(t => this.safeFloat(t.amount) > 0).length || 1;
+    const expenseCount = cleanedTxns.filter(t => this.safeFloat(t.amount) < 0).length || 1;
 
     // Calculate daily averages by dividing by days, not transaction count
     const avgDailyIncome = totalIncome / totalDays;
@@ -467,20 +469,21 @@ class ImprovedForecastService {
     const firstHalf = transactions.slice(0, midPoint);
     const secondHalf = transactions.slice(midPoint);
 
+    // Plaid: positive amounts = income, negative amounts = expenses
     const firstIncome = firstHalf
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
+      .filter(t => this.safeFloat(t.amount) > 0)
+      .reduce((sum, t) => sum + this.safeFloat(t.amount), 0);
     
     const secondIncome = secondHalf
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
+      .filter(t => this.safeFloat(t.amount) > 0)
+      .reduce((sum, t) => sum + this.safeFloat(t.amount), 0);
     
     const firstExpense = firstHalf
-      .filter(t => t.type === 'expense')
+      .filter(t => this.safeFloat(t.amount) < 0)
       .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
     
     const secondExpense = secondHalf
-      .filter(t => t.type === 'expense')
+      .filter(t => this.safeFloat(t.amount) < 0)
       .reduce((sum, t) => sum + Math.abs(this.safeFloat(t.amount)), 0);
 
     const incomeTrend = firstIncome > 0 ? (secondIncome - firstIncome) / firstIncome : 0;

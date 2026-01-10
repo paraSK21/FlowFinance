@@ -360,9 +360,9 @@ function Transactions() {
                         <span style={{
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: txn.type === 'income' ? '#10b981' : '#d1d5db'
+                          color: txn.amount > 0 ? '#10b981' : '#ef4444'
                         }}>
-                          {txn.type === 'income' ? '+' : '-'}${Math.abs(txn.amount).toLocaleString()}
+                          {txn.amount > 0 ? '+' : ''}${txn.amount.toLocaleString()}
                         </span>
                       </td>
                     </tr>

@@ -52,13 +52,14 @@ function Dashboard() {
 
   useEffect(() => {
     if (recentTransactions && recentTransactions.length > 0) {
+      // Plaid: positive amounts = income, negative amounts = expenses
       const income = recentTransactions
-        .filter(t => t.type === 'income')
+        .filter(t => parseFloat(t.amount || 0) > 0)
         .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
       
       const expenses = recentTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+        .filter(t => parseFloat(t.amount || 0) < 0)
+        .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount || 0)), 0)
       
       setStats(prev => ({ ...prev, totalIncome: income, totalExpenses: expenses }))
     }
@@ -772,8 +773,10 @@ function Dashboard() {
                       }}>
                         {txn.category}
                       </span>
-                      <span className="transaction-amount">
-                        ${txn.amount.toLocaleString()}
+                      <span className="transaction-amount" style={{
+                        color: txn.amount > 0 ? '#10b981' : '#ef4444'
+                      }}>
+                        {txn.amount > 0 ? '+' : ''}${Math.abs(txn.amount).toLocaleString()}
                       </span>
                     </div>
                   </div>

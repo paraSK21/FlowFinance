@@ -211,7 +211,7 @@ class PlaidService {
           aiCategory: 'Pending',
           aiCategoryConfidence: 0,
           subcategory: txn.category ? txn.category[1] : null,
-          type: txn.amount > 0 ? 'expense' : 'income',
+          type: txn.amount > 0 ? 'income' : 'expense',
           pending: txn.pending,
         });
 
@@ -223,7 +223,7 @@ class PlaidService {
           txn.merchant_name || '',
           txn.amount,
           userId,
-          txn.amount > 0 ? 'expense' : 'income'
+          txn.amount > 0 ? 'income' : 'expense'
         ).then(aiResult => {
           newTransaction.update({
             aiCategory: aiResult.category,

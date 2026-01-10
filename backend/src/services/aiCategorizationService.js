@@ -1004,7 +1004,8 @@ Rules:
         dayOfMonthPatterns[dayOfMonth] = { income: [], expenses: [] };
       }
 
-      if (txn.type === 'income') {
+      // Plaid: positive amounts = income, negative amounts = expenses
+      if (parseFloat(txn.amount) > 0) {
         dayOfWeekPatterns[dayOfWeek].income.push(amount);
         dayOfMonthPatterns[dayOfMonth].income.push(amount);
         monthlyAverages.income += amount;
@@ -1019,8 +1020,9 @@ Rules:
     const weightedAverages = this.calculateWeightedAverages(cleanedTransactions);
     
     // Calculate simple averages as fallback
-    const incomeCount = cleanedTransactions.filter(t => t.type === 'income').length || 1;
-    const expenseCount = cleanedTransactions.filter(t => t.type === 'expense').length || 1;
+    // Plaid: positive amounts = income, negative amounts = expenses
+    const incomeCount = cleanedTransactions.filter(t => parseFloat(t.amount) > 0).length || 1;
+    const expenseCount = cleanedTransactions.filter(t => parseFloat(t.amount) < 0).length || 1;
     
     monthlyAverages.income = weightedAverages.income || (monthlyAverages.income / incomeCount);
     monthlyAverages.expenses = weightedAverages.expenses || (monthlyAverages.expenses / expenseCount);
@@ -1090,7 +1092,8 @@ Rules:
       const weight = (index + 1) / transactions.length;
       const amount = Math.abs(parseFloat(txn.amount));
 
-      if (txn.type === 'income') {
+      // Plaid: positive amounts = income, negative amounts = expenses
+      if (parseFloat(txn.amount) > 0) {
         weightedIncome += amount * weight;
         incomeWeightSum += weight;
       } else {
@@ -1206,11 +1209,12 @@ Rules:
     const firstHalf = transactions.slice(0, midPoint);
     const secondHalf = transactions.slice(midPoint);
 
-    const firstIncome = firstHalf.filter(t => t.type === 'income').reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
-    const secondIncome = secondHalf.filter(t => t.type === 'income').reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    // Plaid: positive amounts = income, negative amounts = expenses
+    const firstIncome = firstHalf.filter(t => parseFloat(t.amount) > 0).reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const secondIncome = secondHalf.filter(t => parseFloat(t.amount) > 0).reduce((sum, t) => sum + parseFloat(t.amount), 0);
     
-    const firstExpense = firstHalf.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
-    const secondExpense = secondHalf.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    const firstExpense = firstHalf.filter(t => parseFloat(t.amount) < 0).reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    const secondExpense = secondHalf.filter(t => parseFloat(t.amount) < 0).reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
     const incomeTrend = firstIncome > 0 ? (secondIncome - firstIncome) / firstIncome : 0;
     const expenseTrend = firstExpense > 0 ? (secondExpense - firstExpense) / firstExpense : 0;

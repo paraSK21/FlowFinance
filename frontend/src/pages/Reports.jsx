@@ -36,16 +36,18 @@ export default function Reports() {
       const txns = transactions.data.transactions || [];
 
       // Calculate category breakdown
+      // Plaid: positive amounts = income, negative amounts = expenses
       const categoryBreakdown = {};
       txns.forEach(txn => {
         const category = txn.aiCategory || txn.category || 'Uncategorized';
         if (!categoryBreakdown[category]) {
           categoryBreakdown[category] = { income: 0, expense: 0, count: 0 };
         }
-        if (txn.type === 'income') {
-          categoryBreakdown[category].income += parseFloat(txn.amount || 0);
+        const amount = parseFloat(txn.amount || 0);
+        if (amount > 0) {
+          categoryBreakdown[category].income += amount;
         } else {
-          categoryBreakdown[category].expense += parseFloat(txn.amount || 0);
+          categoryBreakdown[category].expense += Math.abs(amount);
         }
         categoryBreakdown[category].count++;
       });

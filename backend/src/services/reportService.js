@@ -35,11 +35,12 @@ class ReportService {
       const revenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
 
       // Calculate expenses by category
+      // Expense transactions have negative amounts from Plaid
       const expensesByCategory = {};
       let totalExpenses = 0;
 
       transactions.forEach(txn => {
-        if (txn.type === 'expense') {
+        if (txn.amount < 0) {
           const category = txn.aiCategory || txn.category || 'Uncategorized';
           const expenseAmount = Math.abs(parseFloat(txn.amount));
           expensesByCategory[category] = (expensesByCategory[category] || 0) + expenseAmount;
@@ -101,18 +102,21 @@ class ReportService {
           dailyCashFlow[date] = { inflow: 0, outflow: 0, net: 0 };
         }
 
-        const txnAmount = Math.abs(parseFloat(txn.amount));
+        const txnAmount = parseFloat(txn.amount);
         
-        if (txn.type === 'income') {
+        // Plaid: positive = income, negative = expense
+        if (txnAmount > 0) {
           dailyCashFlow[date].inflow += txnAmount;
           totalInflow += txnAmount;
+          runningBalance += txnAmount;
         } else {
-          dailyCashFlow[date].outflow += txnAmount;
-          totalOutflow += txnAmount;
+          const absAmount = Math.abs(txnAmount);
+          dailyCashFlow[date].outflow += absAmount;
+          totalOutflow += absAmount;
+          runningBalance -= absAmount;
         }
 
         dailyCashFlow[date].net = dailyCashFlow[date].inflow - dailyCashFlow[date].outflow;
-        runningBalance += (txn.type === 'income' ? txnAmount : -txnAmount);
       });
 
       return {
@@ -201,10 +205,11 @@ class ReportService {
    */
   async generateExpenseReport(userId, startDate, endDate) {
     try {
+      // Expense transactions have negative amounts from Plaid
       const expenses = await Transaction.findAll({
         where: {
           userId,
-          type: 'expense',
+          amount: { [Op.lt]: 0 },
           date: {
             [Op.between]: [startDate, endDate]
           }
@@ -304,7 +309,7 @@ class ReportService {
       });
 
       transactions.forEach(txn => {
-        if (txn.type === 'expense') {
+        if (txn.amount < 0) {
           const month = new Date(txn.date).getMonth();
           const quarter = `Q${Math.floor(month / 3) + 1}`;
           quarters[quarter].expenses += Math.abs(parseFloat(txn.amount));
@@ -313,7 +318,7 @@ class ReportService {
 
       const totalRevenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
       const totalExpenses = transactions
-        .filter(txn => txn.type === 'expense')
+        .filter(txn => txn.amount < 0)
         .reduce((sum, txn) => sum + Math.abs(parseFloat(txn.amount)), 0);
 
       return {
