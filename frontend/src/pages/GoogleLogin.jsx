@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { ArrowLeft } from 'lucide-react'
 import { setCredentials } from '../store/slices/authSlice'
 import Logo from '../components/Logo'
+import ConsentModal from '../components/ConsentModal'
 import toast from 'react-hot-toast'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -12,11 +13,41 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 function GoogleLoginPage() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const [showConsentModal, setShowConsentModal] = useState(false)
+  const [hasAcceptedConsent, setHasAcceptedConsent] = useState(false)
 
   const handleGoogleLogin = () => {
+    // Check if user has accepted consent
+    if (!hasAcceptedConsent) {
+      setShowConsentModal(true)
+      return
+    }
+    
     // Redirect to backend Google OAuth
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
   }
+
+  const handleConsentAccept = () => {
+    setHasAcceptedConsent(true)
+    setShowConsentModal(false)
+    // Store consent in localStorage
+    localStorage.setItem('flowfinance_consent_accepted', 'true')
+    // Automatically proceed with login
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+  }
+
+  const handleConsentDecline = () => {
+    setShowConsentModal(false)
+    toast.error('You must accept the Terms of Service and Privacy Policy to continue')
+  }
+
+  // Check if consent was previously accepted
+  React.useEffect(() => {
+    const consentAccepted = localStorage.getItem('flowfinance_consent_accepted')
+    if (consentAccepted === 'true') {
+      setHasAcceptedConsent(true)
+    }
+  }, [])
 
   return (
     <div style={{
@@ -164,6 +195,13 @@ function GoogleLoginPage() {
           By continuing, you agree to our Terms of Service and Privacy Policy
         </p>
       </div>
+
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        onClose={handleConsentDecline}
+        onAccept={handleConsentAccept}
+      />
     </div>
   )
 }
